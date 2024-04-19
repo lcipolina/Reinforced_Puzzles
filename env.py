@@ -1,6 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
+import numpy as np
+import gymnasium as gym
+from gym import spaces
 
 class Piece:
     def __init__(self, id, sides):
@@ -47,6 +50,7 @@ class PuzzleEnvironment:
         self.reset()
 
     def check_completion(self):
+         # Check if the current puzzle is a complete match with the target puzzle
         return nx.is_isomorphic(self.current_puzzle, self.target_puzzle)
 
     def _setup_target_puzzle(self):
@@ -86,10 +90,6 @@ class PuzzleEnvironment:
         }
         return observation
 
-    def check_completion(self):
-        # Check if the current puzzle is a complete match with the target puzzle
-        return nx.is_isomorphic(self.current_puzzle, self.target_puzzle)
-
 
     def step(self, action):
         piece_id, target_id, side_index, target_side_index = action
@@ -108,7 +108,8 @@ class PuzzleEnvironment:
             reward = -1  # Penalize invalid or incorrect actions
             is_done = False
 
-        return reward, is_done
+        obs = self._get_observation()  # Get the new state of the environment after the action
+        return obs, reward, is_done, {}  # Return the required tuple
 
 
     # REWARD MECHANISM
@@ -166,32 +167,61 @@ class PuzzleEnvironment:
 
         plt.show()
 
+# GYM ENV #######################
+class PuzzleGymEnv(gym.Env):
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, config=None):
+        super(PuzzleGymEnv, self).__init__()
+        if config is None:
+            config = {'sides': [1, 2, 3, 4]}  # Default configuration
+        self.env = PuzzleEnvironment(config)
+        num_pieces = len(self.env.pieces)
+        num_sides = len(config['sides'])
+
+        # Define the action space and observation space based on the configuration
+        self.action_space = spaces.MultiDiscrete([num_pieces, num_pieces, num_sides, num_sides])
+        self.observation_space = spaces.Dict({
+            'current_puzzle': spaces.Box(low=0, high=num_pieces, shape=(num_pieces, num_pieces), dtype=np.uint8),
+            'available_pieces': spaces.Box(low=0, high=1, shape=(num_pieces, num_sides), dtype=np.uint8)
+        })
+
+    def step(self, action):
+        return self.env.step(action)
+
+    def reset(self):
+        return self.env.reset()
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            self.env.visualize_puzzle()
+
+    def close(self):
+        pass
 
 ####################################################################################################
 # EXAMPLE USAGE
 
 # Initialize the puzzle environment
 config = {'sides': [1, 2, 3, 4]}  # Assuming pieces have four sides numbered for simplicity
-environment = PuzzleEnvironment(config=config)
 
-# Manually add a piece to start the puzzle
-starting_piece = Piece(1, [1, 2, 3, 4])
-environment.current_puzzle.add_node(starting_piece.id, piece=starting_piece)
 
-# Simulate adding a second piece that matches one side of the starting piece
-# Let's assume the second piece has a side that matches one side of the starting piece
-second_piece = Piece(2, [4, 1, 2, 3])  # This piece can match the first piece on side '1'
-environment.available_pieces.append(second_piece)
+# Run trial Gym Env
+env = PuzzleGymEnv()
+env.reset()
 
-# Define a valid action:
-# (piece_id, target_id, side_index of piece, side_index of target_piece)
-# Matching side '1' of the second piece with side '4' of the first piece
-action = (2, 1, 0, 0)  # Connect side 0 of piece 2 to side 0 of piece 1
+# Number of steps to simulate
+num_steps = 100
 
-# Execute the step
-reward, is_done = environment.step(action)
+for _ in range(num_steps):
+    action = env.action_space.sample()  # Randomly sample an action
+    obs, reward, done, _ = env.step(action)  # Apply the action to the environment
+    print(f"Action: {action}, Reward: {reward}, Done: {done}")
 
-# Print results to see what happened
-print("Reward:", reward)
-print("Puzzle Completed:", is_done)
-environment.visualize_puzzle()
+    env.render()  # Visualize the state of the environment
+
+    if done:
+        print("The puzzle has been solved or the episode is over!")
+        break
+
+env.close()  # Properly close the environment
