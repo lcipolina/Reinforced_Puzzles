@@ -11,7 +11,7 @@ class Piece:
 
     def __init__(self, id, sides):
         self.id = id
-        self.sides = sides  # List of side values
+        self.sides_lst = sides  # List of side values
         self.available_sides = [True] * len(sides)  # All sides are initially available for connection
 
     def rotate(self, degrees):
@@ -19,7 +19,7 @@ class Piece:
         if degrees % 90 != 0:
             return
         num_rotations = degrees // 90
-        self.sides = self.sides[-num_rotations:] + self.sides[:-num_rotations]
+        self.sides_lst = self.sides_lst[-num_rotations:] + self.sides_lst[:-num_rotations]
         self.available_sides = self.available_sides[-num_rotations:] + self.available_sides[:-num_rotations]
 
     def connect_side(self, side_index):
@@ -32,12 +32,15 @@ class Piece:
     def copy(self):
         # Create a new Piece instance with the same id and sides, but independent available_sides
         # This is useful for maintaining the original piece while updating the available sides. Used when resetting the environment.
-        new_piece = Piece(self.id, self.sides.copy())
+        new_piece = Piece(self.id, self.sides_lst.copy())
         new_piece.available_sides = self.available_sides.copy()  # Ensure the availability status is also copied
         return new_piece
 
     @classmethod
     def _generate_pieces(cls, sides):
+        # This method generates a list of pieces with randomized side values.
+        # Same number of sides for all pieces and randomize the order of sides for each piece
+        # Number of pieces = number of sides (to make them matchable)
         pieces = []
         for i in range(len(sides)):
             random.shuffle(sides)
@@ -49,7 +52,7 @@ class Piece:
 class PuzzleEnvironment:
     def __init__(self, config=None):
         self.sides = config.get("sides", [1, 2, 3, 4])  # Default sides if not provided
-        self.pieces = Piece._generate_pieces(self.sides)
+        self.pieces_lst = Piece._generate_pieces(self.sides)
         self.target_puzzle = nx.Graph()  # Target configuration as a graph.
         self.current_puzzle = nx.Graph()  # Current state of the puzzle.
         self._setup_target_puzzle()
@@ -61,51 +64,43 @@ class PuzzleEnvironment:
 
     def _setup_target_puzzle(self):
         # Defines the target puzzle structure.
-        for piece in self.pieces:
-            self.target_puzzle.add_node(piece.id, sides=piece.sides)
-        # Assuming edges are predefined (this should be adjusted based on actual puzzle rules)
-        for i in range(len(self.pieces) - 1):
-            self.target_puzzle.add_edge(self.pieces[i].id, self.pieces[i + 1].id)
-        # Add an edge between the first and last piece to close the loop
-        self.target_puzzle.add_edge(self.pieces[0].id, self.pieces[-1].id)
+        for piece in self.pieces_lst:
+            self.target_puzzle.add_node(piece.id, sides=piece.sides_lst)
+        for i in range(len(self.pieces_lst) - 1):                                    # Assuming edges are predefined (this should be adjusted based on actual puzzle rules)
+            self.target_puzzle.add_edge(self.pieces_lst[i].id, self.pieces_lst[i + 1].id)
+        self.target_puzzle.add_edge(self.pieces_lst[0].id, self.pieces_lst[-1].id)  # Add an edge between the first and last piece to close the loop
 
+    def update_available_connections(self, piece_id, side_index):
+        # This method updates the list of available connections based on the current state of the puzzle.
+        if piece_id in self.available_connections:
+            self.available_connections[piece_id][side_index] = 0  # Mark side as no longer available
+
+    def initialize_available_connections(self):
+        # Initializes available connections for all pieces with all sides available
+        connections = {piece.id: [1] * len(self.sides) for piece in self.available_pieces}
+        return connections
 
     def reset(self):
-        ''' Puzzle starts blank with all pieces available and no connections made. Returns the initial observation.'''
-        self.current_puzzle.clear()  # Clear the current puzzle state
-        self.available_pieces = [piece.copy() for piece in self.pieces]   # Reset available pieces to a deep copy of all pieces, simulating all pieces scattered on the table
-        self.available_connections = []  # Initialize empty list
-        self.update_available_connections()  # Initialize connections  based on available pieces and their sides (this will be updated after each action)
+        # Puzzle starts with a single node and no connections.
+        self.current_puzzle.clear() # Clear the current puzzle state
+        start_piece = random.choice(self.pieces_lst)  # Select a random piece to start with or specify the starting piece
+        self.current_puzzle.add_node(start_piece.id, piece=start_piece.copy())
+        self.available_pieces = [piece.copy() for piece in self.pieces_lst if piece.id != start_piece.id] # Reset available pieces to all pieces except the starting piece
+        self.available_connections = self.initialize_available_connections()          # Initialize available connections based on the starting piece's available sides
         return self._get_observation()
-
-
-    def update_available_connections(self):
-        # This method updates the list of available connections based on the current state of the puzzle.
-        self.available_connections = []  # Clear existing connections
-        for node_id, attrs in self.current_puzzle.nodes(data=True):
-            piece = attrs['piece']
-            for side_index, is_available in enumerate(piece.available_sides):
-                if is_available:
-                    self.available_connections.append([node_id, side_index])
-        self.available_connections = np.array(self.available_connections, dtype=np.uint8)
-        return self.available_connections
 
 
     def _get_observation(self):
         # Returns the current state of the environment as an observation. This includes the current puzzle graph, available pieces, and available connections.
         graph_data = nx.to_numpy_array(self.current_puzzle, dtype=np.uint8) # Converts current puzzle graph as an adjacency matrix (for gym env)
-        # Available pieces and their details (e.g., sides, orientation)
-        available_pieces_data = np.array(
-            [[piece.id] + piece.sides for piece in self.available_pieces],
-            dtype=np.uint8
-        )
-
+        available_pieces_data = np.array([[piece.id] + piece.sides_lst for piece in self.available_pieces],dtype=np.uint8 )  # Available pieces and their details (e.g., sides, orientation)
         observation = {
             "current_puzzle": graph_data,
             "available_pieces": available_pieces_data,
             "available_connections": self.available_connections  # Additional information about available connections (e.g., piece ID, side index)
         }
         return observation
+
 
     def process_action(self, action):
         piece_id, target_id, side_index, target_side_index = action         # Extract the components of the action, which are expected to be the IDs and side indices of the two pieces to connect.
@@ -115,18 +110,16 @@ class PuzzleEnvironment:
         if piece and target_piece and self.sides_match(piece, side_index, target_piece, target_side_index):
             self.current_puzzle.add_node(piece.id, piece=piece)  # Add the active piece to the current puzzle graph, signifying its placement in the puzzle.
             self.current_puzzle.add_edge(piece_id, target_id)    # Connect the active piece with the target piece in the graph, effectively linking their respective sides.
-            piece.connect_side(side_index)                       # Mark the used sides of both pieces as connected, which updates their availability for future connections.
-            target_piece.connect_side(target_side_index)
+            self.update_available_connections(piece_id, side_index)
+            self.update_available_connections(target_id, target_side_index)
             self.available_pieces.remove(piece)                  # Remove the active piece from the list of available pieces, as it's now part of the puzzle structure.
             return True                                          # Return True to indicate a valid and successful action that has modified the puzzle's state.
         return False                                             # Return False if the action is invalid (e.g., the pieces cannot be connected, one of the pieces wasn't found, or sides don't match).
 
 
     def step(self, action):
-        valid_action = self.process_action(action)  # The action is valid if the piece is available, the target piece exists, and the sides match
+        valid_action = self.process_action(action)  # Check validity and update connections since the puzzle structure has changed
         if valid_action:
-            # Update connections since the puzzle structure has changed
-            self.available_connections = self.update_available_connections()
             reward = self.calculate_reward()
             is_done = self.check_completion()
         else:
@@ -162,7 +155,7 @@ class PuzzleEnvironment:
     def sides_match(self, piece, side_index, target_piece, target_side_index):
         # Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.
         # This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
-        return piece.sides[side_index] == target_piece.sides[target_side_index]
+        return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
 
     # VISUALIZATION
@@ -206,14 +199,19 @@ class PuzzleGymEnv(gym.Env):
         self.env = PuzzleEnvironment(config)
 
         # Define the action space and observation space based on the configuration
-        num_pieces = len(self.env.pieces)
+        num_pieces = len(self.env.pieces_lst)
         num_sides  = len(config['sides'])
+        num_connections  = num_pieces * num_sides
         self.action_space = spaces.MultiDiscrete([num_pieces, num_pieces, num_sides, num_sides])
         self.observation_space = spaces.Dict({
             'current_puzzle': spaces.Box(low=0, high=1, shape=(num_pieces, num_pieces), dtype=np.uint8),
             'available_pieces': spaces.Box(low=0, high=1, shape=(num_pieces, num_sides + 1), dtype=np.uint8),
-            'available_connections': spaces.Box(low=0, high=1, shape=(len(self.env.update_available_connections()),), dtype=np.uint8)
+         'available_connections': spaces.Dict({
+                str(i): spaces.MultiBinary(num_sides) for i in range(1, num_pieces + 1)
+            })
         })
+
+    #TODO: see if this works as the available connections change with each step!!
 
     def step(self, action):
         return self.env.step(action)
