@@ -40,11 +40,12 @@ class Piece:
 
     @classmethod
     def _generate_pieces(cls, num_sides=4, num_pieces=4):
-        # Each side should have a unique number on each piece
-        sides = [1, 2, 3, 4]
-        # Generate pieces with sides in different orders to ensure variability
+        sides = [1, 2, 3, 4] # Each side has a unique number on each piece
+        # Generate a list of puzzle pieces, assigning an ID to each piece and 'sides[:]' creates a shallow copy of the sides list so each piece has the sides in the same initial order
         pieces = [cls(i, sides[:]) for i in range(1, num_pieces + 1)]
-        # Shuffle the sides for each piece to simulate a real puzzle - TODO: at the beginning, do not shuffle the sides (easier to visualize the puzzle)
+        # Generate pieces with sides in different orders to ensure variability
+        # TODO: Shuffling the sides of each piece is disabled at first to make the initial state of the puzzle easier to visualize
+        # Shuffle the sides for each piece to simulate a real puzzle
         # for piece in pieces:
         #    random.shuffle(piece.sides_lst)
 
