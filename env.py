@@ -1,5 +1,7 @@
-import networkx as nx
+
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches  #create shapes
+import networkx as nx
 import random
 import numpy as np
 import gymnasium as gym
@@ -37,24 +39,24 @@ class Piece:
         return new_piece
 
     @classmethod
-    def _generate_pieces(cls, sides):
-        # This method generates a list of pieces with randomized side values.
-        # Same number of sides for all pieces and randomize the order of sides for each piece
-        # Number of pieces = number of sides (to make them matchable)
-        pieces = []
-        for i in range(len(sides)):
-            random.shuffle(sides)
-            piece = cls(i + 1, sides.copy())
-            pieces.append(piece)
-        return pieces
+    def _generate_pieces(cls, num_sides=4, num_pieces=4):
+        # Each side should have a unique number on each piece
+        sides = [1, 2, 3, 4]
+        # Generate pieces with sides in different orders to ensure variability
+        pieces = [cls(i, sides[:]) for i in range(1, num_pieces + 1)]
+        # Shuffle the sides for each piece to simulate a real puzzle - TODO: at the beginning, do not shuffle the sides (easier to visualize the puzzle)
+        # for piece in pieces:
+        #    random.shuffle(piece.sides_lst)
 
+        return pieces
 
 class PuzzleEnvironment:
     def __init__(self, config=None):
         self.sides = config.get("sides", [1, 2, 3, 4])  # Default sides if not provided
-        self.pieces_lst = Piece._generate_pieces(self.sides)
+        self.pieces_lst = Piece._generate_pieces(num_sides=len(self.sides),num_pieces=len(self.sides)) # Generate puzzle pieces with matching sides
         self.target_puzzle = nx.Graph()  # Target configuration as a graph.
         self.current_puzzle = nx.Graph()  # Current state of the puzzle.
+        self.available_pieces = self.pieces_lst.copy() # Initially, all pieces are available to be placed in the puzzle
         self._setup_target_puzzle()
         self.reset()
 
@@ -63,12 +65,28 @@ class PuzzleEnvironment:
         return nx.is_isomorphic(self.current_puzzle, self.target_puzzle)
 
     def _setup_target_puzzle(self):
-        # Defines the target puzzle structure.
-        for piece in self.pieces_lst:
-            self.target_puzzle.add_node(piece.id, sides=piece.sides_lst)
-        for i in range(len(self.pieces_lst) - 1):                                    # Assuming edges are predefined (this should be adjusted based on actual puzzle rules)
-            self.target_puzzle.add_edge(self.pieces_lst[i].id, self.pieces_lst[i + 1].id)
-        self.target_puzzle.add_edge(self.pieces_lst[0].id, self.pieces_lst[-1].id)  # Add an edge between the first and last piece to close the loop
+            # This method will now correctly match sides based on the layout you provided.
+            # The connections should be hardcoded based on the puzzle's logic.
+
+            # Add nodes
+            for piece in self.pieces_lst:
+                self.target_puzzle.add_node(piece.id, piece=piece.copy())
+
+            # Add edges based on the matching side numbers, the order is important here
+            # Assuming the ids of the pieces are 1, 2, 3, 4 and they are arranged as follows:
+            # 1 2
+            # 3 4
+
+            # Graph.add_edge(node1, node2, attribute_name=value)
+            # Connect top left (1) and top right (2) on side '1'
+            self.target_puzzle.add_edge(1, 2, side_match=(self.pieces_lst[0].sides_lst.index(1), self.pieces_lst[1].sides_lst.index(1)))
+            # Connect top right (2) and bottom right (4) on side '2'
+            self.target_puzzle.add_edge(2, 4, side_match=(self.pieces_lst[1].sides_lst.index(2), self.pieces_lst[3].sides_lst.index(2)))
+            # Connect bottom right (4) and bottom left (3) on side '3'
+            self.target_puzzle.add_edge(4, 3, side_match=(self.pieces_lst[3].sides_lst.index(3), self.pieces_lst[2].sides_lst.index(3)))
+            # Connect bottom left (3) and top left (1) on side '4'
+            self.target_puzzle.add_edge(3, 1, side_match=(self.pieces_lst[2].sides_lst.index(4), self.pieces_lst[0].sides_lst.index(4)))
+
 
     def update_available_connections(self, piece_id, side_index):
         # This method updates the list of available connections based on the current state of the puzzle.
@@ -158,37 +176,51 @@ class PuzzleEnvironment:
         return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
 
-    # VISUALIZATION
+   # VISUALIZATION
+
+    #TODO: rotate the pieces to align the sides correctly
     def visualize_puzzle(self):
-        plt.figure(figsize=(12, 6))
+        fig, axs = plt.subplots(1, 2, figsize=(12, 6))  # Create a figure with two subplots side by side, one for the current puzzle and one for the target puzzle
+        axs[0].set_title('Current Puzzle')    # Set titles for the subplots for easy identification
+        axs[1].set_title('Target Puzzle')
+        # Define the positions for each puzzle piece, where the keys are the piece IDs and the values are the coordinates
+        positions = {1: (0, 0), 2: (1, 0), 3: (0, -1), 4: (1, -1)}
+        label_offsets = {0: (0, 0.05), 1: (0.05, 0), 2: (0, -0.05), 3: (-0.05, 0)}  # Define offsets for drawing the side labels of each puzzle piece, relative to the center of the piece
+        self.draw_puzzle(self.current_puzzle, axs[0], positions, label_offsets)     # Draw the current puzzle state on the first subplot
+        self.draw_puzzle(self.target_puzzle, axs[1], positions, label_offsets)      # Draw the target puzzle configuration on the second subplot
+        plt.show()                                                                  # Display the figure with the two subplots
 
-        # Check if the current puzzle graph is not empty
-        if self.current_puzzle.number_of_nodes() > 0:
-            plt.subplot(121)
-            pos = nx.circular_layout(self.current_puzzle)  # Circular layout for clear visualization
-            nx.draw(self.current_puzzle, pos, with_labels=True, node_color='lightblue', node_size=500, font_size=10, font_color='darkblue')
-            plt.title("Current Puzzle")
-        else:
-            plt.subplot(121)
-            plt.text(0.5, 0.5, 'No pieces placed yet', horizontalalignment='center', verticalalignment='center')
-            plt.title("Current Puzzle")
+    def draw_puzzle(self, puzzle, ax, positions, label_offsets):
+        half_side = 0.1  # Set a variable for half the length of a puzzle piece's side to assist with centering the squares
 
-        # Check if the target puzzle graph is not empty
-        if self.target_puzzle.number_of_nodes() > 0:
-            plt.subplot(122)
-            pos = nx.circular_layout(self.target_puzzle)  # Consistent layout with the current puzzle
-            nx.draw(self.target_puzzle, pos, with_labels=True, node_color='lightgreen', node_size=500, font_size=10, font_color='darkgreen')
-            plt.title("Target Puzzle")
-        else:
-            plt.subplot(122)
-            plt.text(0.5, 0.5, 'Target puzzle is undefined', horizontalalignment='center', verticalalignment='center')
-            plt.title("Target Puzzle")
+        # Loop through each piece in the puzzle
+        for node_id, attrs in puzzle.nodes(data=True):
+            piece = attrs['piece']           # Extract the piece object, which contains information about the piece
+            x, y = positions[node_id]         # Retrieve the (x, y) position for the piece based on its ID
+            # Create a rectangle to represent the puzzle piece, centered at (x, y) with width and height of 0.2 units
+            square = patches.Rectangle((x - half_side, y - half_side), 0.2, 0.2, linewidth=1, edgecolor='black', facecolor='lightblue')
+            ax.add_patch(square)  # Add the square to the subplot
+            ax.text(x, y, str(node_id), ha='center', va='center', fontsize=9, color='red') # Place the piece's ID at the center of the square
+            for side_idx, side_val in enumerate(piece.sides_lst): # Label each side of the piece with its respective value from the sides list
+                ox, oy = label_offsets[side_idx] # Calculate the offset for each side label based on predefined offsets
+                ax.text(x + ox, y + oy, f'{side_val}', ha='center', va='center', color='blue', fontsize=8)  # Place the label for each side next to the square
 
-        plt.show()
+        # Draw lines between connected pieces to represent the edges of the puzzle
+        for u, v, data in puzzle.edges(data=True):
+            # Check if the edge has a 'side_match' attribute, which indicates which sides of the pieces are connected
+            if 'side_match' in data:
+                side_u, side_v = data['side_match']  # Extract the side indices from the 'side_match' attribute
+                u_pos = positions[u] # Get the positions for the connected pieces
+                v_pos = positions[v]
+                u_offset = label_offsets[side_u] # Calculate the starting and ending points for the line based on side offsets
+                v_offset = label_offsets[side_v]
+                start_point = (u_pos[0] + u_offset[0], u_pos[1] + u_offset[1]) # Determine the exact points for the line based on positions and offsets
+                end_point = (v_pos[0] + v_offset[0], v_pos[1] + v_offset[1])
+                ax.plot([start_point[0], end_point[0]], [start_point[1], end_point[1]], 'green', linewidth=2)  # Draw the line connecting the sides of the pieces
+
 
 
 # GYM ENV #######################
-
 class PuzzleGymEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -201,17 +233,15 @@ class PuzzleGymEnv(gym.Env):
         # Define the action space and observation space based on the configuration
         num_pieces = len(self.env.pieces_lst)
         num_sides  = len(config['sides'])
-        num_connections  = num_pieces * num_sides
+        num_connections  = num_pieces * num_sides #TODO: delete this
         self.action_space = spaces.MultiDiscrete([num_pieces, num_pieces, num_sides, num_sides])
         self.observation_space = spaces.Dict({
             'current_puzzle': spaces.Box(low=0, high=1, shape=(num_pieces, num_pieces), dtype=np.uint8),
             'available_pieces': spaces.Box(low=0, high=1, shape=(num_pieces, num_sides + 1), dtype=np.uint8),
-         'available_connections': spaces.Dict({
+            'available_connections': spaces.Dict({
                 str(i): spaces.MultiBinary(num_sides) for i in range(1, num_pieces + 1)
             })
         })
-
-    #TODO: see if this works as the available connections change with each step!!
 
     def step(self, action):
         return self.env.step(action)
@@ -243,7 +273,7 @@ if __name__ == "__main__":
         obs, reward, done, _ = env.step(action)  # Apply the action to the environment
         print(f"Action: {action}, Reward: {reward}, Done: {done}")
 
-       # env.render()  # Visualize the state of the environment
+        env.render()  # Visualize the state of the environment
 
         if done:
             print("The puzzle has been solved or the episode is over!")
