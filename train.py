@@ -5,60 +5,45 @@ import ray
 from ray import air, tune
 from ray.rllib.models import ModelCatalog
 from ray.rllib.algorithms.ppo import PPOConfig
-from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
+#from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils.typing import ModelConfigDict, TensorType
-from ray.rllib.utils.annotations import override
+#from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
 torch, nn = try_import_torch()
 
+# TODO: Action Masking settings:
+#https://github.com/ray-project/ray/blob/master/rllib/examples/action_masking.py
+
 
 from env import PuzzleGymEnv
-
-
-class CustomTorchModel(TorchModelV2, nn.Module):
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
-        nn.Module.__init__(self)
-        self.fc = nn.Linear(obs_space.shape[0], num_outputs)
-
-    @override(TorchModelV2)
-    def forward(self, input_dict, state, seq_lens):
-        obs = input_dict["obs"]
-        state = obs["state"]
-        action_mask = obs["action_mask"]
-
-        logits = self.fc(state)
-        inf_mask = torch.clamp(torch.log(action_mask), min=-1e15)
-        masked_logits = logits + inf_mask
-        return masked_logits, state
-
+from policy import MaskedActionModel as CustomTorchModel
 
 # Register the custom model
-ModelCatalog.register_custom_model("my_custom_model", CustomTorchModel)
+ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
 
 CPU_NUM = 7
-
-#TODO: check if the model needs to be registered before the trainer config
-#TODO: check if others also implement the mask in the OBSERVATION space!!
 
 def setup():
     trainer_config = (PPOConfig()
                       .environment(env=PuzzleGymEnv,
                                    env_config={'sides': [1, 2, 3, 4]},
-                                   disable_env_checking=True)
-                      .training(train_batch_size=1024,
-                                 model = {"custom_model": "my_custom_model",
-                                            "_disable_preprocessor_api": True,
-                                          } ,
-                                  _enable_rl_module_api=False )
+                                   )
+                      .training(train_batch_size=1000,
+                                sgd_minibatch_size=32,  #If this change, change it on the policy.py - These are the number of samples that are collected before a gradient step is taken.
+                                 model = {"custom_model":  "masked_action_model",
+                                            "_disable_preprocessor_api": False,  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
+                                          } )
                       .rollouts(num_rollout_workers=CPU_NUM, num_envs_per_worker=1, rollout_fragment_length='auto')
                       .framework("torch")
                       .debugging(seed=42)
-                     .experimental(_disable_preprocessor_api=True)
+                     # We need to disable preprocessing of observations, because preprocessing
+                    # would flatten the observation dict of the environment.
+                   # .experimental(
+                    #    _disable_preprocessor_api=False, # Do not flatten the observation dict of the environment
+                    #)
                       )      #   .rl_module(_enable_rl_module_api=False) #to keep using the old Mod
 
-#TODO: test, understad and document this, regarding the settings.
-# https://stackoverflow.com/questions/77425959/function-parameters-in-customizing-models-in-ray-rllib
+
 
     # Setup the tuner and training
     tuner = tune.Tuner("PPO", param_space = trainer_config,
@@ -78,7 +63,11 @@ def setup():
     return best_result_grid
 
 def main():
-    ray.init(ignore_reinit_error=True)
+
+    storage_address = "/Users/lucia/Desktop/Art_Project/000-A_Pompei/Repair_project/CODE_puzzle/ray_results/puzzle" #New requirement
+    ray.init(ignore_reinit_error=True,
+             local_mode=True,
+             storage = storage_address)
     results = setup()
     ray.shutdown()
 
