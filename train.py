@@ -22,39 +22,46 @@ from policy import MaskedActionModel as CustomTorchModel
 ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
 
 CPU_NUM = 7
+env_config_dict = {
+        'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+        'num_pieces': 4,
+        }
 
 def setup():
     trainer_config = (PPOConfig()
                       .environment(env=PuzzleGymEnv,
-                                   env_config={'sides': [1, 2, 3, 4]},
+                                   env_config= env_config_dict,
                                    )
                       .training(train_batch_size=1000,
-                                sgd_minibatch_size=32,  #If this change, change it on the policy.py - These are the number of samples that are collected before a gradient step is taken.
+                                sgd_minibatch_size=64,  # These are the number of samples that are collected before a gradient step is taken.
+                                 entropy_coeff=0.2,
+                                  kl_coeff=0.1,
                                  model = {"custom_model":  "masked_action_model",
                                             "_disable_preprocessor_api": False,  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
                                           } )
                       .rollouts(num_rollout_workers=CPU_NUM, num_envs_per_worker=1, rollout_fragment_length='auto')
                       .framework("torch")
-                      .debugging(seed=42)
+                     # .debugging(seed=42)
                      # We need to disable preprocessing of observations, because preprocessing
                     # would flatten the observation dict of the environment.
-                   # .experimental(
-                    #    _disable_preprocessor_api=False, # Do not flatten the observation dict of the environment
-                    #)
+                    .experimental(
+                        _disable_preprocessor_api=False, # Do not flatten the observation dict of the environment
+                    )
+
                       )      #   .rl_module(_enable_rl_module_api=False) #to keep using the old Mod
 
 
 
     # Setup the tuner and training
     tuner = tune.Tuner("PPO", param_space = trainer_config,
-                           run_config=air.RunConfig(
-                                name =  'puzzle' , #self.experiment_name,
-                                stop={"training_iteration": 5},
+                              run_config=air.RunConfig(
+                                name = 'puzzle' , #self.experiment_name,
+                                stop={"training_iteration": 30},
                                 checkpoint_config=air.CheckpointConfig(checkpoint_frequency=10,
                                                                         checkpoint_at_end=False,
-                                                                        num_to_keep=5),
+                                                                        num_to_keep=3),
                                 local_dir="ray_results",
-                                verbose=3,
+                                verbose=2,
                        ))
 
     result_grid = tuner.fit() #train the model

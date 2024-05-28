@@ -343,6 +343,8 @@ class PuzzleEnvironment:
 
         current_piece_id, target_id, side_index, target_side_index = action
 
+        print(f"Processing action: Connect piece {current_piece_id} to piece {target_id} at sides {side_index} and {target_side_index}")
+
         # Find the active piece among the available pieces
         piece_idx_lst = np.where(self.available_pieces[:, -1] == 1)[0]  # Lst of idx of available pieces
         piece_row     = next((idx for idx in piece_idx_lst if self.available_pieces[idx, 0] == current_piece_id), None) # Bring the first piece that matches with the given `current_piece_id` among the currently available pieces.
@@ -379,7 +381,7 @@ class PuzzleEnvironment:
 
                return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
 
-        print(f"ISSUE: No matching sides - current piece side: {side_index} and target piece {target_side_index}")
+        print(f"ISSUE: No matching sides - current piece side: {side_index} and target piece side: {target_side_index}")
         return False                                                                  # Return False if the action is invalid (e.g., the pieces cannot be connected, one of the pieces wasn't found, or sides don't match).
 
 
@@ -498,12 +500,23 @@ class PuzzleGymEnv(gym.Env):
         # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
 
         available_connections_flat_size = num_pieces * num_sides # Calculate the flattened size of available_connections
-        self.observation_space =Dict({
-            'current_puzzle': Box(low=0, high=1, shape=(num_pieces, num_pieces), dtype=np.uint8),
-            'available_pieces': Box(low=0, high=1, shape=(num_pieces, num_sides + 1), dtype=np.uint8),
-            'available_connections': Box(low=0, high=1, shape=(available_connections_flat_size,), dtype=np.uint8),
-            'action_mask': Box(low=0, high=1, shape=(num_pieces * num_pieces * num_sides * num_sides,), dtype=np.float32)  # Switch to float32
+       # self.observation_space =Dict({
+       #     'current_puzzle': Box(low=0, high=1, shape=(num_pieces, num_pieces), dtype=np.uint8),
+       #     'available_pieces': Box(low=0, high=1, shape=(num_pieces, num_sides + 1), dtype=np.uint8),
+       #     'available_connections': Box(low=0, high=1, shape=(available_connections_flat_size,), dtype=np.uint8),
+       #     'action_mask': Box(low=0, high=1, shape=(num_pieces * num_pieces * num_sides * num_sides,), dtype=np.float32)  # Switch to float32
+       # })
+
+
+
+        self.observation_space = Dict({
+            'current_puzzle': Box(low=-1, high=num_pieces-1, shape=(2, 2), dtype=np.int8),
+            'available_pieces': Box(low=-1, high=num_sides-1, shape=(num_pieces, num_sides + 1), dtype=np.int8),
+            'available_connections': Box(low=-1, high=1, shape=(num_pieces * num_sides,), dtype=np.int8),
+            'action_mask': Box(low=-1, high=1, shape=(256,), dtype=np.float32)
         })
+
+
         '''NOT SURE IF STILL NEEDED
         # Method to sample a single observation
         def observation_space_sample(self):
