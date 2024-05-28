@@ -265,6 +265,124 @@ class PuzzleEnvironment:
         return np.concatenate([np.array(v) for v in connections_dict.values()])
 
 
+    def _get_observation(self):
+        '''Get the current observation of the environment.
+        '''
+        self.current_mask = self._get_action_mask()                     # Calculate/update the current action mask to determine which actions are valid at this state
+        observation = {
+                "current_puzzle"       : self.current_puzzle,           # Current state of the puzzle grid, -1 means empty
+                "available_pieces"     : self.available_pieces,         # List of available pieces and their sides, -1 means unavailable, 1 means available
+                "available_connections": self.available_connections,    # List of available connections between pieces, -1 means unavailable
+                "action_mask"          : self.current_mask
+            }
+        return observation
+
+    def sides_match(self, piece, side_index, target_piece, target_side_index):
+        # Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.
+        # This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
+        return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
+
+
+    def place_piece(self, current_piece_id, target_id, side_index, target_position):
+        """
+        Place a piece adjacent to the target piece based on the connecting side.
+
+        This function determines the correct new position for the current piece relative to the target piece,
+        using the side_index to infer the correct adjacency direction. It ensures that the placement
+        is within the boundaries of the puzzle grid and that the calculated position is not already occupied.
+
+        Parameters:
+        - current_piece_id (int): The ID of the current piece to be placed.
+        - target_id (int): The ID of the target piece adjacent to which the current piece will be placed.
+        - side_index (int): The index representing the side of the target piece where the current piece will connect.
+        - target_position (tuple): The current position (row, column) of the target piece in the grid.
+
+        Returns:
+        - bool: True if the piece was successfully placed, False otherwise.
+        """
+
+        # Mapping from side indices to their corresponding row and column offsets in the grid.
+        # This map translates the side connection into grid coordinates:
+        # 0 - Top: place the current piece above the target piece.
+        # 1 - Right: place the current piece to the right of the target piece.
+        # 2 - Bottom: place the current piece below the target piece.
+        # 3 - Left: place the current piece to the left of the target piece.
+        side_to_position = {
+            0: (-1, 0),  # Mapping side '0' (top) to move current piece above the target
+            1: (0, 1),   # Mapping side '1' (right) to move current piece to the right of the target
+            2: (1, 0),   # Mapping side '2' (bottom) to move current piece below the target
+            3: (0, -1)   # Mapping side '3' (left) to move current piece to the left of the target
+        }
+
+        # Validate that the side_index provided is one that we have mapped to a position.
+        if side_index in side_to_position:
+            # Extract the row and column offset based on the side index.
+            row_offset, col_offset = side_to_position[side_index]
+            # Calculate the new position for the current piece based on the target's position and the offsets.
+            new_position = (target_position[0][0] + row_offset, target_position[1][0] + col_offset)
+
+            # Check if the new position is within the grid bounds and the specified cell is empty (not occupied).
+            if (0 <= new_position[0] < self.grid_size) and (0 <= new_position[1] < self.grid_size) and (self.current_puzzle[new_position[0], new_position[1]] == -1):
+                # If the position is valid and empty, place the current piece at this new position on the grid.
+                self.current_puzzle[new_position] = current_piece_id
+                return True  # Indicate successful placement.
+
+        # If the side index was not valid, or the position was out of bounds or occupied, return False.
+        return False
+
+
+    def process_action(self, action):
+        '''Process the action to connect two pieces if the rules permit.
+            First checks if the action is valid  - if the two pieces can be connected based on the puzzle's rules.
+            If valid action: method returns True  - and next method assigns rewards. If invalid action: method returns False.
+            If valid action: updates the puzzle state and available connections.
+            Update the available connections based on the newly connected piece's side and remove the active piece from the list of available pieces.
+            Agent will then receive a reward based on whether the action was valid
+            meaning that the pieces could be connected and the puzzle state was updated accordingly.
+        '''
+
+        current_piece_id, target_id, side_index, target_side_index = action
+
+        # Find the active piece among the available pieces
+        piece_idx_lst = np.where(self.available_pieces[:, -1] == 1)[0]  # Lst of idx of available pieces
+        piece_row     = next((idx for idx in piece_idx_lst if self.available_pieces[idx, 0] == current_piece_id), None) # Bring the first piece that matches with the given `current_piece_id` among the currently available pieces.
+
+        # Retrieve the target piece from the puzzle grid (assuming it is already placed) to know where to connect the active piece to
+        target_position = np.where(self.current_puzzle == target_id)    # If found, return (row_idx, col_idx) Get the target piece from the nodes in the current puzzle graph.
+        if target_position[0].size == 0:
+            print(f"ISSUE: Selected target piece {target_id} not found in the current puzzle")
+            return False  # Target not found
+
+        # Check if the specified sides match according to the puzzle's rules.  # If they do, add the active piece to the current puzzle graph as a new node and connect it with the target piece.
+        if piece_row is not None and self.sides_match(
+            piece=self.pieces_lst[current_piece_id],
+            side_index=side_index,
+            target_piece=self.pieces_lst[target_id],
+            target_side_index=target_side_index
+        ):
+            print(f"Piece {current_piece_id} and target piece {target_id} can be connected")
+
+            # 1 - Update current_puzzle: Place the active piece on the grid at the target position
+            if self.place_piece(current_piece_id, target_id, side_index, target_position):
+
+               # 2- Continue with marking piece as unavailable ("-1"), connecting sides, and updating connections
+               self.available_pieces[piece_row, -1] = -1               # Remove the active piece from the list of available pieces, as it's now part of the puzzle structure.
+
+               # 3 - Mark the sides as connected using connect_side
+               self.pieces_lst[current_piece_id].connect_side(side_index)
+               self.pieces_lst[target_id].connect_side(target_side_index)
+
+               # 4 - Update available_connections: Mark the specific connections (sides) involved in the action as unavailable
+               # Since we are connecting 2 pieces, we need to update the available connections for both pieces - meaning that the sides that were connected are no longer available.
+               self.update_available_connections(current_piece_id, side_index)         # Update the available connections based on the newly connected piece's side
+               self.update_available_connections(target_id, target_side_index)         # Update the available connections for the target piece as well
+
+               return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
+
+        print(f"ISSUE: No matching sides - current piece side: {side_index} and target piece {target_side_index}")
+        return False                                                                  # Return False if the action is invalid (e.g., the pieces cannot be connected, one of the pieces wasn't found, or sides don't match).
+
+
     def reset(self, seed=None, options=None):
         ''' Puzzle starts with a single node and no connections.'''
         if seed is not None: random.seed(seed) # as per new gymnasium
@@ -289,74 +407,6 @@ class PuzzleEnvironment:
 
         return self._get_observation(), {}
 
-    def _get_observation(self):
-        '''Get the current observation of the environment.
-        '''
-        self.current_mask = self._get_action_mask()                     # Calculate/update the current action mask to determine which actions are valid at this state
-        observation = {
-                "current_puzzle"       : self.current_puzzle,           # Current state of the puzzle grid, -1 means empty
-                "available_pieces"     : self.available_pieces,         # List of available pieces and their sides, -1 means unavailable, 1 means available
-                "available_connections": self.available_connections,    # List of available connections between pieces, -1 means unavailable
-                "action_mask"          : self.current_mask
-            }
-        return observation
-
-
-    def sides_match(self, piece, side_index, target_piece, target_side_index):
-        # Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.
-        # This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
-        return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
-
-    def process_action(self, action):
-        '''Process the action to connect two pieces if the rules permit.
-            First checks if the action is valid  - if the two pieces can be connected based on the puzzle's rules.
-            If valid action: method returns True  - and next method assigns rewards. If invalid action: method returns False.
-            If valid action: updates the puzzle state and available connections.
-            Update the available connections based on the newly connected piece's side and remove the active piece from the list of available pieces.
-            Agent will then receive a reward based on whether the action was valid
-            meaning that the pieces could be connected and the puzzle state was updated accordingly.
-        '''
-
-        current_piece_id, target_id, side_index, target_side_index = action
-
-        # Find the active piece among the available pieces
-        piece_idx_lst = np.where(self.available_pieces[:, -1] == 1)[0]  # Lst of idx of available pieces
-        piece_row     = next((idx for idx in piece_idx_lst if self.available_pieces[idx, 0] == current_piece_id), None) # Bring the first piece that matches with the given `current_piece_id` among the currently available pieces.
-
-        # Retrieve the target piece from the puzzle grid (assuming it is already placed)
-        target_position = np.where(self.current_puzzle == target_id)               # Get the target piece from the nodes in the current puzzle graph.
-        if target_position[0].size == 0:
-            print(f"ISSUE: Selected target piece {target_id} not found in the current puzzle")
-            return False  # Target not found
-
-        # Check if the specified sides match according to the puzzle's rules.  # If they do, add the active piece to the current puzzle graph as a new node and connect it with the target piece.
-        if piece_row is not None and self.sides_match(
-            piece=self.pieces_lst[current_piece_id],
-            side_index=side_index,
-            target_piece=self.pieces_lst[target_id],
-            target_side_index=target_side_index
-        ):
-            print(f"Piece {current_piece_id} and target piece {target_id} can be connected")
-
-            # 1 - Update current_puzzle: Place the active piece on the grid at the target position
-            self.current_puzzle[target_position] = current_piece_id  # Place the active piece on the grid and update the graph state
-
-            # 2 - Update available_pieces: Mark the piece as unavailable ("-1")
-            self.available_pieces[piece_row, -1] = -1       # Remove the active piece from the list of available pieces, as it's now part of the puzzle structure.
-
-            # 3 - Mark the sides as connected using connect_side
-            self.pieces_lst[current_piece_id].connect_side(side_index)
-            self.pieces_lst[target_id].connect_side(target_side_index)
-
-            # 3 - Update available_connections: Mark the specific connections (sides) involved in the action as unavailable
-            # Since we are connecting 2 pieces, we need to update the available connections for both pieces - meaning that the sides that were connected are no longer available.
-            self.update_available_connections(current_piece_id, side_index)         # Update the available connections based on the newly connected piece's side
-            self.update_available_connections(target_id, target_side_index)         # Update the available connections for the target piece as well
-
-            return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
-
-        print(f"ISSUE: No matching sides - current piece side: {side_index} and target piece {target_side_index}")
-        return False                                                                # Return False if the action is invalid (e.g., the pieces cannot be connected, one of the pieces wasn't found, or sides don't match).
 
     def step(self, action):
         valid_action = self.process_action(action)     # Check validity and update connections if valid action
@@ -401,8 +451,28 @@ class PuzzleEnvironment:
     # ------------------------------------------------------------------------------------------------------
     # VISUALIZATION
     # ------------------------------------------------------------------------------------------------------
-    # TODO: rotate the pieces to align the sides correctly
-    # TODO: add graphing
+    def visualize_puzzle(self, mode='human'):
+        '''Visualize the current state of the puzzle in ASCII format.
+        '''
+        if mode == 'human':
+            # Fetch the current puzzle state from the environment
+            current_puzzle = self.current_puzzle
+            output = ""
+            # Iterate through each row in the puzzle grid
+            for row in current_puzzle:
+                line = ""
+                # Iterate through each cell in the row
+                for piece_id in row:
+                    if piece_id == -1:
+                        # If the cell is empty (-1), represent it with an empty placeholder
+                        line += "[   ] "
+                    else:
+                        # Otherwise, display the piece ID, formatted to be 3 characters wide
+                        line += f"[{piece_id:3d}] "
+                # Add this row to the output, with a new line at the end
+                output += line + "\n"
+            print(output)
+
 
 
 # ========================================================================================================
@@ -458,11 +528,10 @@ class PuzzleGymEnv(gym.Env):
     def reset(self, seed=None, options=None):
         return self.env.reset()
 
-    '''TODO: fix the visualization'
     def render(self, mode='human'):
+        ''' Simple visualization in ASCII'''
         if mode == 'human':
             self.env.visualize_puzzle()
-    '''
 
     def close(self):
         pass
@@ -488,7 +557,7 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 
-       # env.render()  # Visualize the state of the environment #TODO: fix the visualization
+        env.render()  # Visualize the state of the environment #TODO: fix the visualization
 
         if terminated:
             print("The puzzle has been solved or the episode is over!")
