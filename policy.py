@@ -1,127 +1,76 @@
-from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
-from ray.rllib.utils.annotations import override
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
+from ray.rllib.models.torch.fcnet import FullyConnectedNetwork
+from ray.rllib.models import ModelCatalog
+from ray.rllib.utils.torch_utils import FLOAT_MIN
 
-
-class MaskedActionModel(TorchModelV2, nn.Module):
+class CustomMaskedModel(TorchModelV2, nn.Module):
+    ''' Compute raw logits for each part of the action space and apply masks to the logits.
+        RLLIB will then sample actions from the action space based on the logits.
+    '''
     def __init__(self, obs_space, action_space, num_outputs, model_config, name):
-        super(MaskedActionModel, self).__init__(obs_space, action_space, num_outputs, model_config, name)
+        TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
         nn.Module.__init__(self)
 
-        # Flatten the observation space to pass through a fully connected layer
-        # Calculate the correct input sizes for the fully connected layers
+        self.action_space = action_space  # Save action space as an instance variable
 
-        attribute_name = "original_space"                         # (same as obs_space.original_space but with dynamic access)
-        obs_space = getattr(obs_space, attribute_name, obs_space) # dict
-        current_puzzle_size = obs_space["current_puzzle"].shape[0] * obs_space["current_puzzle"].shape[1]
-        available_pieces_size = obs_space["available_pieces"].shape[0] * obs_space["available_pieces"].shape[1]
-        available_connections_size = obs_space["available_connections"].shape[0]
-
-        # Define the neural network layers
-        self.fc_current_puzzle = nn.Linear(current_puzzle_size, 128)
-        self.fc_available_pieces = nn.Linear(available_pieces_size, 128)
-        self.fc_available_connections = nn.Linear(available_connections_size, 128)
-
-        # Define separate output layers for each component of the action space
-        self.fc_piece_id = nn.Linear(128 * 3, 4)
-        self.fc_target_id = nn.Linear(128 * 3, 4)
-        self.fc_side_index = nn.Linear(128 * 3, 4)
-        self.fc_target_side_index = nn.Linear(128 * 3, 4)
-
-        '''
-        # Access sub-spaces within the observation space and exclude the action mask
-        #TODO: use this to create the layers automatically - this gives an 'orderedDict' which is no
-        original_spaces = obs_space.original_space.spaces  #orderedDict
-        flattened_size = sum(
-            torch.prod(torch.tensor(space.shape)).item()  # Multiply dimensions of each feature to get total size
-            for key, space in original_spaces.items()
-            if key != "action_mask"  # Skip the action mask
+        # Define the shared network with custom hidden layer sizes
+        self.shared_layers = nn.Sequential(
+            nn.Linear(obs_space.shape[0], 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU()
         )
 
-        # Define layers based on the calculated flattened size
-        self.fc1 = nn.Linear(flattened_size, 128)
-        self.fc2 = nn.Linear(128, num_outputs)
-        self.value_branch = nn.Linear(128, 1)
-        '''
-        self._value_out = None
+        # Separate output layers for each categorical dimension of the action space
+        # Each output layer will produce logits corresponding to the number of possible actions for that dimension.
+        # RLLIB then uses these logits to sample actions from the action space. RLLIB then softmaxes the logits to get probabilities.
+        self.logits_active_piece_id = nn.Linear(128, action_space.nvec[0])       # action_space.nvec[0] is the number of pieces - Select the active piece
+        # This one will not have a mask, as all sides are available for the active piece
+        self.logits_active_piece_side_index = nn.Linear(128, action_space.nvec[1])     # action_space.nvec[1] is the number of target pieces - Select side of the active piece
+        # Target side depends on the target piece, so the number of possible actions is the number of target pieces times the number of sides
+        self.logits_target_piece_and_side = nn.Linear(128, action_space.nvec[2])     #  Combined dimensions: [num_pieces, num_sides]  - Select the target piece and side of the target piece
 
-    @override(TorchModelV2)
+
+        # Define the value head  -  Value function network
+        self.value_head = nn.Linear(128, 1)
+
     def forward(self, input_dict, state, seq_lens):
-        obs = input_dict["obs"]
+        self.shared_layers_output = self.shared_layers(input_dict["obs_flat"])  # Pass through the shared layers. Dimensions: [batch_size (32), 128].
 
-        # Flatten the components of the observation dictionary
-        current_puzzle_flat = torch.flatten(obs["current_puzzle"], start_dim=1)
-        available_pieces_flat = torch.flatten(obs["available_pieces"], start_dim=1)
-        available_connections_flat = obs["available_connections"].float()
-
-        # Pass through the respective layers
-        current_puzzle_out = torch.relu(self.fc_current_puzzle(current_puzzle_flat))
-        available_pieces_out = torch.relu(self.fc_available_pieces(available_pieces_flat))
-        available_connections_out = torch.relu(self.fc_available_connections(available_connections_flat))
-
-        # Concatenate the outputs
-        combined = torch.cat([current_puzzle_out, available_pieces_out, available_connections_out], dim=1)
-
-        # Compute logits for each component
-        logits_piece_id = self.fc_piece_id(combined)
-        logits_target_id = self.fc_target_id(combined)
-        logits_side_index = self.fc_side_index(combined)
-        logits_target_side_index = self.fc_target_side_index(combined)
-
-        # Reshape action mask to match logits shape for each component
-        # Reshape action mask to match logits shape for each component
-        action_mask = obs["action_mask"].float().reshape(-1, 256)
-        mask_piece_id = action_mask[:, :4]
-        mask_target_id = action_mask[:, 4:8]
-        mask_side_index = action_mask[:, 8:12]
-        mask_target_side_index = action_mask[:, 12:16]
-
-        # Apply the action mask by setting invalid action logits to a very negative value
-        value = -1e6  # TODO: remove this line - this is to test the model without the mask
-
-        masked_logits_piece_id = logits_piece_id + (mask_piece_id * value)
-        masked_logits_target_id = logits_target_id + (mask_target_id * value)
-        masked_logits_side_index = logits_side_index + (mask_side_index * value)
-        masked_logits_target_side_index = logits_target_side_index + (mask_target_side_index * value)
-
-        return torch.cat([
-            masked_logits_piece_id,
-            masked_logits_target_id,
-            masked_logits_side_index,
-            masked_logits_target_side_index
-        ], dim=1), state
+        # Compute logits for each part of the action space
+        logits_active_piece_id = self.logits_active_piece_id(self.shared_layers_output)  # shape: [32, num_pieces]
+        logits_active_piece_side_index = self.logits_active_piece_side_index(self.shared_layers_output)  # shape: [32, num_target_pieces]
+        logits_target_piece_and_side = self.logits_target_piece_and_side(self.shared_layers_output) # shape: [32, num_pieces * num_sides]
 
 
-    def forward_old(self, input_dict, state, seq_lens):
-        obs = input_dict["obs"]
+        # Apply masks to the logits to prevent invalid actions
 
-        # Extract the action mask, which has the batch size as the first dimension
-        action_mask = torch.tensor(obs["action_mask"], dtype=torch.float32)
+        # Only Available Pieces(i.e. not placed) Can be Selected as Current Piece
+        if "mask_piece_id" in input_dict["obs"]:
+            mask = input_dict["obs"]["mask_piece_id"].float()  # mask are defined the other way around from what we need them :/
+            inf_mask = torch.clamp(torch.log(mask), min=-1e10)  # Calculate the inf_mask where mask values are 0 (invalid) and will have -inf after log transformation
+            logits_active_piece_id += inf_mask
 
-        # Flatten all non-mask features for each observation and concatenate across features
-        # This will be the input to the first layer
-        # For example, if each feature set is (batch size, num dims) (32, 16) and there are two such feature sets, the final concatenated shape will be (32, 32).
-        non_mask_features = torch.cat([
-            torch.tensor(value, dtype=torch.float32).view(action_mask.size(0), -1)  #convert to tensor and reshape to (batch_size, -1) for concatenation.
-            for key, value in obs.items()
-            if key != "action_mask" # Skip the action mask
+        # Only Available Target (placed) Pieces Can be Selected as Target Piece - if the piece is placed and has at least one available side
+        if "mask_target_side_index" in input_dict["obs"]:
+            mask = input_dict["obs"]["mask_target_side_index"].float()
+            inf_mask = torch.clamp(torch.log(mask), min=-1e10)
+            logits_target_piece_and_side += inf_mask
+
+        # Concatenate all logits into a single tensor as required by RLLIB
+        all_logits = torch.cat([
+            logits_active_piece_id,         # selected_piece_index
+            logits_active_piece_side_index, # selected_side_index
+            logits_target_piece_and_side    # target_piece_index, target_side_index
         ], dim=1)
 
-        # Pass the batch of non-mask features through the first layer
-        x = F.relu(self.fc1(non_mask_features))
-        logits = self.fc2(x)
-        self._value_out = self.value_branch(x)
+        return all_logits, state
 
-        # Apply the action mask to the logits
-        inf_mask = torch.clamp(torch.log(action_mask + 1e-6), min=-1e10)
 
-        if inf_mask.shape == logits.shape:
-            logits += inf_mask
-
-        return logits, state
 
     def value_function(self):
-        # Return the predicted value function from the value branch
-        return torch.zeros(1)  # Dummy value for the sake of completeness
+        value = self.value_head(self.shared_layers_output)
+        return value.squeeze(-1)  # Remove any unnecessary dimensions to match [batch_size]
