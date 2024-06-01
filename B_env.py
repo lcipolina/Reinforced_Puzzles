@@ -4,6 +4,16 @@
 
 - TODO: Add visualization
 
+- Naive approach to solve a puzzle environment.
+ A single agent decides which pieces to connect and where to place them.
+
+- The environment is a 2x2 grid with 4 pieces, each having 4 sides.
+
+- The agent selects a piece to connect and a target piece to connect to,
+along with the side indices for both pieces.
+
+=========================================================================================
+
 REPRESENTATIONS:
 
 1- Target puzzle is represented as a graph
@@ -561,7 +571,7 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 
-        env.render()  
+        env.render()
 
         if terminated:
             print("The puzzle has been solved or the episode is over!")
