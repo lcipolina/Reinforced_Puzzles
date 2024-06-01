@@ -561,7 +561,7 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 
-        env.render()  # Visualize the state of the environment #TODO: fix the visualization
+        env.render()  
 
         if terminated:
             print("The puzzle has been solved or the episode is over!")

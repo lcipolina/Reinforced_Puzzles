@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
         env_config_dict = {
                 'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                'num_pieces': 4,
+                'num_pieces': 6,
                 }
 
         setup_dict = { 'training_iterations': 2,
