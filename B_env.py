@@ -94,12 +94,12 @@ class Piece:
 class PuzzleEnvironment:
     def __init__(self, config=None):
         self.sides          = config.get("sides", [5, 6, 7, 8])                                            # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+        self.num_pieces     = config.get("num_pieces", 4)                                                  # Number of pieces in the puzzle
         self.num_sides      = len(self.sides)
-        self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides,num_pieces=len(self.sides))     # Generate pieces, sides and availability
+        self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides,num_pieces=self.num_pieces)     # Generate pieces, sides and availability
 
         # Define the puzzle grid dimensions (2x2 for 4 pieces)
         # Current puzzle is an array (then converted to graph for comparisons), target puzzle is a graph
-        self.num_pieces     = config.get("num_pieces", 4)
         self.grid_size      = int(np.sqrt(self.num_pieces))                                             # Generates 4 pieces with 4 sides
         self.current_puzzle = np.full((self.grid_size, self.grid_size), -1, dtype=np.int8)              # 2x2 grid for a 4-piece puzzle , "-1"represents an empty cell in the puzzle grid
         self.available_pieces_sides = np.full((self.num_pieces, self.num_sides + 1), 1, dtype=np.int8)  # Availability of pieces and sides.  "1" represents available - where each row represents a piece, and the last element in each row indicates the availability of the piece.
@@ -547,7 +547,7 @@ if __name__ == "__main__":
     # Initialize the puzzle environment
     config = {
         'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-        'num_pieces': 4,
+        'num_pieces': 5,
         }
 
     env = PuzzleGymEnv(config) # Initialize the env (including reset)
