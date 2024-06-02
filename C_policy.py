@@ -20,9 +20,11 @@ class CustomMaskedModel(TorchModelV2, nn.Module):
         #____________________________________________________________________________________________________________________
         # Define the network architecture: i.e. the order of operations in the forward pass and their sizes
         # - Shared layers and separate output layers for each part of the action space
+        # Input dimensions are: [batch_size, observation_size]
+        # Output dimensions are: [batch_size, number_of_actions]] -  categorical logits for each part of the action space  (or mu, sigma in cts space)
         #____________________________________________________________________________________________________________________
 
-        self.action_space = action_space  # Save action space as an instance variable
+        self.action_space = action_space  # not sure if needed
 
         # Define the shared network with custom hidden layer sizes
         self.shared_layers = nn.Sequential(
