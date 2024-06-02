@@ -27,7 +27,7 @@ class CustomMaskedModel(TorchModelV2, nn.Module):
         # Define the shared network with custom hidden layer sizes
         self.shared_layers = nn.Sequential(
             nn.Linear(obs_space.shape[0], 128),
-            nn.ReLU(),
+            nn.ReLU(),   # ONLY POSITIVE VALUES!
             nn.Linear(128, 128),
             nn.ReLU()
         )
@@ -60,18 +60,6 @@ class CustomMaskedModel(TorchModelV2, nn.Module):
         logits_active_piece_id         = self.logits_active_piece_id(self.shared_layers_output)          # shape: [batch_size (32), num_pieces]
         logits_active_piece_side_index = self.logits_active_piece_side_index(self.shared_layers_output)  # shape: [batch_size(32), num_target_pieces]
         logits_target_piece_and_side   = self.logits_target_piece_and_side(self.shared_layers_output)    # shape: [batch_size(32), num_pieces * num_sides]
-
-
-        logits_target_piece = self.logits_target_piece_and_side(self.shared_layers_output)
-        logit_target_side   = self.logits_target_piece_and_side(self.shared_layers_output)
-
-        '''
-        piece_id = [1,2,3,4]
-        lado_piece_id = [5,6,7,8]
-        target_piece_and_side = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-
-        '''
-
 
         # 2. Apply masks to the logits to prevent invalid actions
         # Only Available Pieces (i.e. not placed) can be selected as current piece
