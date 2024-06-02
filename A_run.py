@@ -9,7 +9,7 @@ sys.path.insert(0, parent_dir)                                    # Add parent d
 
 
 from D_train import RunRay as train_policy
-from B_env import PuzzleGymEnv
+from B_env_naive import PuzzleGymEnv
 from C_policy import CustomMaskedModel as CustomTorchModel
 
 
