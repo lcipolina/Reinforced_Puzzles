@@ -28,30 +28,17 @@ class Runner:
             train_result         = train_policy(self.setup_dict, self.custom_env_config).train()
             # Reads 'output.xlsx' and generates training graphs avg and rewards per seed - reward, loss, entropy
             #graph_reward_n_others()
-            return 0  #train_result['checkpoint_path'] # used for testing
+            return train_result['checkpoint_path'] # used later for inference
 
-        '''
+
         # EVALUATE WITH ONE CHECKPOINT ====================================
-        def evaluate(self, checkpoint_path=None, train_path= None, test_path = None, max_coalitions_to_plot = 1):
+      #  def evaluate(self, checkpoint_path=None, train_path= None, test_path = None):
            # Reads from checkpoint and plays policyin env. Graphs Boxplot and Accuracy
-           # To load a checkpoint. Num CPU requested should be the at min, same as training. Otherwise look at open issue in Github.
            # :inputs: training dists are needed to initialize the env
 
-           # OBS: to run the sankey diagram, better to do it from a checkpoint as it takes a lot of time
-
-            if test_path is None:
-                test_distance_lst=self.test_distance_lst
-            else:
-                test_distance_lst = self.open_distance_file(filepath = test_path)  # Open and process list of list file
-
-                # Training and testing distances and other vbles for the env
-                self.set_config_dict_n_dists(train_path_= train_path, test_path_= test_path)    # sets the self.custom_env_config
-                eval_cls = evaluate_policy(checkpoint_path, self.custom_env_config)             # Initialize the Inference class with the checkpoint path and custom environment configuration
-                eval_cls.run_inference_and_generate_plots(distance_lst_input=test_distance_lst, max_coalitions=max_coalitions_to_plot) # Run inference on the env and generate coalition plots and 'response_data'
-                metrics()                                                                       # Reads the response_data.xls and generates boxplot. Generates the 'summary_table.xls'
-        '''
-
-
+           # self.set_config_dict_n_dists(train_path_= train_path, test_path_= test_path)    # sets the self.custom_env_config
+           # eval_cls = evaluate_policy(checkpoint_path, self.custom_env_config)             # Initialize the Inference class with the checkpoint path and custom environment configuration
+           # eval_cls.run_inference_and_generate_plots(distance_lst_input=test_distance_lst, max_coalitions=max_coalitions_to_plot) # Run inference on the env and generate coalition plots and 'response_data'
 
 
 ##################################################

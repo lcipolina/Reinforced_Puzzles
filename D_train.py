@@ -14,23 +14,21 @@ from ray.rllib.utils.typing import ModelConfigDict, TensorType
 #from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
 torch, nn = try_import_torch()
+from sigterm_handler import signal_handler, return_state_file_path # Resume after SIGTERM termination
 
 
 current_script_dir  = os.path.dirname(os.path.realpath(__file__)) # Get the current script directory path
 parent_dir          = os.path.dirname(current_script_dir)         # Get the parent directory (one level up)
 sys.path.insert(0, parent_dir)                                    # Add parent directory to sys.path
 
-from B_env_naive import PuzzleGymEnv as Env                           # Custom environment
-from C_policy import CustomMaskedModel as CustomTorchModel  # Custom model
+from B_env_naive import PuzzleGymEnv as Env                       # Custom environment
+from C_policy import CustomMaskedModel as CustomTorchModel        # Custom model with masks
 
-from D_ppo_config import get_sarl_trainer_config            # Tranier config for PPO
+from D_ppo_config import get_sarl_trainer_config                  # Tranier config for single agent PPO
 
 
 output_dir = os.path.expanduser("~/ray_results") # Default output directory
-storage_address = "/Users/lucia/Desktop/Art_Project/000-A_Pompei/Repair_project/CODE_puzzle/ray_results/puzzle" #New requirement for Ray 2.12
-TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-
-
+TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
 # Register the custom model
 ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
@@ -41,30 +39,24 @@ ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
 class RunRay:
 
 
-    def __init__(self, setup_dict,custom_env_config, experiment_name = 'puzzle'):
+    def __init__(self, setup_dict,custom_env_config):
         current_dir            = os.path.dirname(os.path.realpath(__file__))
-        self.jason_path  = os.path.join(current_dir, 'best_checkpoint_'+TIMESTAMP+'.json')
+        self.jason_path        = os.path.join(current_dir, 'best_checkpoint_'+TIMESTAMP+'.json')
         self.clear_json(self.jason_path)
 
         self.setup_dict        = setup_dict
         self.custom_env_config = custom_env_config
-        self.experiment_name   = setup_dict['experiment_name']
-
-
+        self.experiment_name   = setup_dict.get('experiment_name', 'puzzle')
 
 
     def setup_n_fit(self):
         '''Setup trainer dict and train model
         '''
-        #TODO: Set Signal Handler
-        #signal.signal(signal.SIGTERM, signal_handler) # Julich SIGTERM handling for graceful shutdown and restore unterminated runs
-        experiment_path = os.path.join(output_dir, self.experiment_name)
 
         #_____________________________________________________________________________________________
         # Setup Config
         #_____________________________________________________________________________________________
 
-        # TRAINER CONFIG - custom model (action and loss) and custom env
         _train_batch_size = self.setup_dict['train_batch_size']
         seed              = self.setup_dict['seed']
         train_iteration   = self.setup_dict['training_iterations']
@@ -80,20 +72,39 @@ class RunRay:
         # Setup Trainer
         #_____________________________________________________________________________________________
 
+        # SLURM signal handler - Decide whether to start a new experiment or restore an existing one
+        experiment_path = os.path.join(output_dir, self.experiment_name)
+        state_file_path = return_state_file_path()
+        if os.path.exists(state_file_path):  #restore works only for unterminated runs
+            with open(state_file_path, "r") as f:
+                state = f.read().strip()
+            if state == "interrupted":
+                print("Previous run was interrupted. Attempting to restore...")
+                tuner = tune.Tuner.restore(
+                path=experiment_path,
+                trainable="PPO",
+                resume_unfinished=True,
+                resume_errored=False,
+                restart_errored=False,
+                param_space=trainer_config,  # Assuming `trainer_config` matches the original setup
+            )
+            os.remove(state_file_path) # Clear the state file after handling
 
-        #TODO: Set Signal Handler
-
-
-        tuner = tune.Tuner("PPO", param_space = trainer_config,
-                                run_config=air.RunConfig(
-                                    name = 'puzzle' , #self.experiment_name,
-                                    stop={"training_iteration": train_iteration},
-                                    checkpoint_config=air.CheckpointConfig(checkpoint_frequency=50,
-                                                                            checkpoint_at_end=True,
-                                                                            num_to_keep=3),
-                                    local_dir="ray_results",
-                                    verbose=2,
-                        ))
+        else: # Train from scratch
+            print("Starting a new experiment run.")
+            tuner  = tune.Tuner("PPO",
+                    param_space = trainer_config,
+                    run_config = air.RunConfig(
+                        name =  self.experiment_name,
+                        stop = {"training_iteration": train_iteration}, # "iteration" will be the metric used for reporting
+                        checkpoint_config=air.CheckpointConfig(checkpoint_frequency=50,
+                                                               checkpoint_at_end=True,
+                                                               num_to_keep= 3 ),#keep only the last 3 checkpoints
+                        #callbacks = [wandb_callbacks],  # WandB local_mode = False only!
+                        verbose= 2, #0 for less output while training - 3 for seeing custom_metrics better
+                        local_dir = output_dir
+                            )
+                        )
 
         result_grid      = tuner.fit() #train the model
         best_result_grid = result_grid.get_best_result(metric="episode_reward_mean", mode="max")
@@ -103,7 +114,7 @@ class RunRay:
     def train(self):
         ''' Calls Ray to train the model  '''
         if ray.is_initialized(): ray.shutdown()
-        ray.init(ignore_reinit_error=True,local_mode=True, storage = storage_address)
+        ray.init(ignore_reinit_error=True,local_mode=True)
 
         seeds_lst  = self.setup_dict['seeds_lst']
         for _seed in seeds_lst:
@@ -111,10 +122,10 @@ class RunRay:
             print("we're on seed: ", _seed)
             self.setup_dict['seed'] = _seed
             best_res_grid           = self.setup_n_fit()
-            self.save_results(best_res_grid,None,self.jason_path, _seed) #print results, saves checkpoints and metrics
+            result_dict             = self.save_results(best_res_grid,None,self.jason_path, _seed) #print results, saves checkpoints and metrics
 
         ray.shutdown()
-        return 0 #result_dict
+        return result_dict  # checkpoint path
 
     #____________________________________________________________________________________________
     #  Analize results and save files
@@ -130,7 +141,7 @@ class RunRay:
 
         # Save best checkpoint (i.e. the last) onto JSON filer
         best_checkpoints = []
-        best_checkpoint = best_result_grid.checkpoint #returns a folder path, not a file.
+        best_checkpoint = best_result_grid.checkpoint  #returns a folder path, not a file.
         path_checkpoint = best_checkpoint.path
         checkpoint_path = path_checkpoint if path_checkpoint else None
         best_checkpoints.append({"seed": _seed, "best_checkpoint": checkpoint_path})
