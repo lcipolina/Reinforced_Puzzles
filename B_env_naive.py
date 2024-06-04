@@ -348,6 +348,7 @@ class PuzzleEnvironment:
                 return True  # Indicate successful placement.
 
         # If the side index was not valid, or the position was out of bounds or occupied, return False.
+        my_print(f"Invalid placement for piece {current_piece_id} at side {side_index} adjacent to target position {target_position}",self.DEBUG)
         return False
 
 
@@ -468,16 +469,18 @@ class PuzzleEnvironment:
     # ------------------------------------------------------------------------------------------------------
     def visualize_puzzle(self, mode='human'):
         '''Visualize the current state of the puzzle in ASCII format.
+           Since the 'current_puzzle' is a Matrix, we can visualize it in a string format.
+           For every row and column, it converts the info to a string and concatenates it to a final string 'output'
         '''
         if mode == 'human':
             # Fetch the current puzzle state from the environment
-            current_puzzle = self.current_puzzle
-            output = ""
+            current_puzzle = self.current_puzzle              # matrix representation of the current puzzle
+            output = ""                                       # String to store final representation of the puzzle
             # Iterate through each row in the puzzle grid
             for row in current_puzzle:
-                line = ""
+                line = ""                                     # Initialize the line for each row (smaller string then concatenated to the final output string)
                 # Iterate through each cell in the row
-                for piece_id in row:
+                for piece_id in row:                          # For column in the row
                     if piece_id == -1:
                         # If the cell is empty (-1), represent it with an empty placeholder
                         line += "[   ] "
@@ -485,7 +488,7 @@ class PuzzleEnvironment:
                         # Otherwise, display the piece ID, formatted to be 3 characters wide
                         line += f"[{piece_id:3d}] "
                 # Add this row to the output, with a new line at the end
-                output += line + "\n"
+                output += line + "\n"  # Add a new line after each row
             my_print(output,self.DEBUG)
 
 
@@ -560,7 +563,8 @@ if __name__ == "__main__":
     # Initialize the puzzle environment
     config = {
         'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-        'num_pieces': 5,
+        'num_pieces': 16,
+        'DEBUG': True
         }
 
     env = PuzzleGymEnv(config) # Initialize the env (including reset)
@@ -574,7 +578,7 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 
-        env.render()
+        env.render()  # Since
 
         if terminated:
             print("The puzzle has been solved or the episode is over!")
