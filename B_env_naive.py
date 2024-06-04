@@ -55,6 +55,8 @@ import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Box, MultiDiscrete, Dict
 
+from Z_utils import my_print
+
 
 class Piece:
     '''represents individual puzzle pieces. Each piece has an ID, a list of sides (each side having some value),
@@ -107,6 +109,7 @@ class PuzzleEnvironment:
         self.num_pieces     = config.get("num_pieces", 4)                                                  # Number of pieces in the puzzle
         self.num_sides      = len(self.sides)
         self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides,num_pieces=self.num_pieces)     # Generate pieces, sides and availability
+        self.DEBUG          = config.get("DEBUG", False)                                                   # Debug mode
 
         # Define the puzzle grid dimensions (2x2 for 4 pieces)
         # Current puzzle is an array (then converted to graph for comparisons), target puzzle is a graph
@@ -267,8 +270,8 @@ class PuzzleEnvironment:
         # Determine valid target pieces (Desideratum 4 and 5) -  Check if the piece is placed and has at least one available side
         valid_target_pieces = np.where((piece_availability == -1) & (np.any(side_availability != -1, axis=1)))[0]
 
-        print(f"Valid active pieces: {valid_active_pieces}")
-        print(f"Valid target pieces: {valid_target_pieces}")
+        my_print(f"Valid active pieces: {valid_active_pieces}",self.DEBUG)
+        my_print(f"Valid target pieces: {valid_target_pieces}",self.DEBUG)
 
         # Determine valid target piece and sides (Desideratum 4 and 5)
         for target_piece_idx in valid_target_pieces:
@@ -366,11 +369,11 @@ class PuzzleEnvironment:
         target_piece_id = combined_target_idx // self.num_sides  # Calculate target piece ID
         target_side_idx = combined_target_idx % self.num_sides   # Calculate side index of the target piece
 
-        print(f"Processing action: Connect selected piece {current_piece_id} at side {side_idx} to target piece {target_piece_id} at side {target_side_idx}")
+        my_print(f"Processing action: Connect selected piece {current_piece_id} at side {side_idx} to target piece {target_piece_id} at side {target_side_idx}",self.DEBUG)
 
         # Check if the selected current piece is still available to be played (i.e., not already placed)
         if self.available_pieces_sides[current_piece_id, -1] == -1:
-            print("Selected current piece is not available.")
+            my_print("Selected current piece is not available.",self.DEBUG)
             return False
 
         # Check if the current piece is available and not already placed
@@ -382,15 +385,15 @@ class PuzzleEnvironment:
                         # If placement is successful, update the active piece and target_piece, sides and connections as no longer available
                         self.update_pieces_sides(current_piece_id,target_piece_id, side_idx, target_side_idx)
 
-                        print(f"Connected piece {current_piece_id} side {side_idx} to piece {target_piece_id} side {target_side_idx}")
+                        my_print(f"Connected piece {current_piece_id} side {side_idx} to piece {target_piece_id} side {target_side_idx}",self.DEBUG)
 
                         return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
                 else:
-                        print(f"Sides unmatched for piece {current_piece_id} side {side_idx} and piece {target_piece_id} side {target_side_idx}")
+                        my_print(f"Sides unmatched for piece {current_piece_id} side {side_idx} and piece {target_piece_id} side {target_side_idx}",self.DEBUG)
             else:
-                    print(f"Cannot connect piece {current_piece_id} to (renumerated) side {side_idx} with piece's {target_piece_id}  (renumerated) side {target_side_idx}")
+                    my_print(f"Cannot connect piece {current_piece_id} to (renumerated) side {side_idx} with piece's {target_piece_id}  (renumerated) side {target_side_idx}",self.DEBUG)
         else:
-                print(f"Target piece {target_piece_id} or side {target_side_idx} not available.")
+                my_print(f"Target piece {target_piece_id} or side {target_side_idx} not available.", self.DEBUG)
 
         return False                                                                            # Return False if any condition fails and the pieces cannot be connected as intended
 
@@ -414,7 +417,7 @@ class PuzzleEnvironment:
         self.current_puzzle[0, 0] = start_piece_id            # Place the first piece in the top-left corner
         self.update_pieces_sides(start_piece_id)              # Mark the starting piece as unavailable (it's already placed)
 
-        print(f"Starting piece: {start_piece_id} placed in puzzle grid")
+        my_print(f"Starting piece: {start_piece_id} placed in puzzle grid",self.DEBUG)
 
         return self._get_observation(), {}
 
@@ -431,7 +434,7 @@ class PuzzleEnvironment:
         obs = self._get_observation()
         truncated = False  # Whether the episode was truncated due to the time limit
 
-        print(f"Reward: {reward}")
+        my_print(f"Reward: {reward}",self.DEBUG)
         return obs, reward, terminated, truncated, {}
 
 
@@ -483,7 +486,7 @@ class PuzzleEnvironment:
                         line += f"[{piece_id:3d}] "
                 # Add this row to the output, with a new line at the end
                 output += line + "\n"
-            print(output)
+            my_print(output,self.DEBUG)
 
 
 
