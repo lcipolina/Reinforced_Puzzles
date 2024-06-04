@@ -30,7 +30,7 @@ from D_ppo_config import get_sarl_trainer_config                  # Tranier conf
 output_dir = os.path.expanduser("~/ray_results") # Default output directory
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
-# Register the custom model
+# Register the custom model - used by D_ppo_config.py
 ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
 
 
@@ -61,12 +61,12 @@ class RunRay:
         seed              = self.setup_dict['seed']
         train_iteration   = self.setup_dict['training_iterations']
         num_cpus          = self.setup_dict['cpu_nodes']
+        num_gpus          = self.setup_dict.get('gpu_nodes', 0)
         lr_start,lr_end,lr_time = 2.5e-4,  2.5e-5, 50 * 1000000 #embelishments of the lr's
 
         # Get the trainer with the base configuration  - #OBS: no need to register Env anymore, as it is passed on the trainer config!
-        trainer_config = get_sarl_trainer_config(Env, self.custom_env_config,
-                            _train_batch_size, lr_start, lr_time, lr_end, num_cpus, seed,
-                        )
+        trainer_config = get_sarl_trainer_config(Env, self.custom_env_config, self.setup_dict,
+                            lr_start, lr_time, lr_end )
 
         #_____________________________________________________________________________________________
         # Setup Trainer
@@ -108,6 +108,11 @@ class RunRay:
 
         result_grid      = tuner.fit() #train the model
         best_result_grid = result_grid.get_best_result(metric="episode_reward_mean", mode="max")
+
+        print("BEST RESULT:")
+        print(f" Reward_max: {best_result_grid.metrics['sampler_results']['episode_reward_max']}")
+        print(f" Reward_mmean: {best_result_grid.metrics['sampler_results']['episode_reward_mean']}")
+
         return best_result_grid
 
 

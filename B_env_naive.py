@@ -489,7 +489,7 @@ class PuzzleEnvironment:
                         line += f"[{piece_id:3d}] "
                 # Add this row to the output, with a new line at the end
                 output += line + "\n"  # Add a new line after each row
-            my_print(output,self.DEBUG)
+            my_print(output,DEBUG = True)
 
 
 
@@ -578,7 +578,7 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 
-        env.render()  # Since
+        env.render()                                     # Convert current puzzle into string for visualization
 
         if terminated:
             print("The puzzle has been solved or the episode is over!")

@@ -1,15 +1,21 @@
-''' Train Single Agent PPO on Ray 2.12'''
+''' Train Single Agent PPO on Ray 2.12
+
+    Uses a custom Model with action masking
+'''
 
 from ray.rllib.algorithms.ppo import PPOConfig
 
 
 def get_sarl_trainer_config(env_generator,
                             custom_env_config,
-                            _train_batch_size,
+                            setup_dict,
                               lr_start, lr_time,
-                              lr_end, num_cpus,
-                              _seed = 42,
+                              lr_end
                            ):
+
+    _train_batch_size  = setup_dict['train_batch_size']
+    num_cpus           = setup_dict['cpu_nodes']
+    _seed              = setup_dict['seed']
 
     trainer_config = (PPOConfig()
                             .environment(env=env_generator,
@@ -20,7 +26,7 @@ def get_sarl_trainer_config(env_generator,
                                 # entropy_coeff=0.2,  #it doesnt seem to change much
                                 # kl_coeff=0.01,
                                     model = {"custom_model":  "masked_action_model",
-                                                "_disable_preprocessor_api": False,  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
+                                             "_disable_preprocessor_api": False,  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
                                             } )
                             .rollouts(num_rollout_workers=num_cpus, num_envs_per_env_runner=1, rollout_fragment_length='auto')
                             .framework("torch")
