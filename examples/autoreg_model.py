@@ -42,8 +42,13 @@ class ActionModel(nn.Module):
         # The combined input is the context vector and the logits for the first action (a1)
         # Input is as required by the Action Distribution (context vector, logits for the first action)
 
+        # Compute logits for the first action based on the context input
         a1_logits = self.a1_logits(ctx_input)
+
+        # Compute hidden representation for the second action based on the first action input
         a2_hidden_out = self.a2_hidden(a1_input)
+
+        # Compute logits for the second action based on the hidden representation
         a2_logits = self.a2_logits(a2_hidden_out)
         return a1_logits, a2_logits
 
