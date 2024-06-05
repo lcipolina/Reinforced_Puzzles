@@ -9,9 +9,7 @@ import ray
 from ray import air, tune
 from ray.rllib.models import ModelCatalog
 
-#from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils.typing import ModelConfigDict, TensorType
-#from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
 torch, nn = try_import_torch()
 from sigterm_handler import signal_handler, return_state_file_path # Resume after SIGTERM termination
