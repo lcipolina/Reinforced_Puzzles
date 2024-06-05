@@ -6,19 +6,24 @@
 from ray.rllib.algorithms.ppo import PPOConfig
 
 
-def get_sarl_trainer_config(env_generator,
+def get_sarl_trainer_config(env_class,
                             custom_env_config,
                             setup_dict,
-                              lr_start, lr_time,
-                              lr_end
+                            lr_start = None,
+                            lr_time = None,
+                            lr_end = None
                            ):
+    '''Returns the configuration for the PPO trainer
+       Args:
+              env_class: The environment class (NOT the generator! as it registers the env)
+    '''
 
     _train_batch_size  = setup_dict['train_batch_size']
     num_cpus           = setup_dict['cpu_nodes']
-    _seed              = setup_dict['seed']
+    _seed              = setup_dict.get('seed', 42)
 
     trainer_config = (PPOConfig()
-                            .environment(env=env_generator,
+                            .environment(env=env_class,
                                     env_config= custom_env_config,
                                     )
                             .training(train_batch_size=_train_batch_size,  # Number of samples that are collected before a gradient step is taken.
