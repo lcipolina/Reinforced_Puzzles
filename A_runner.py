@@ -63,6 +63,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     env_config_dict = {
                     'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                     'num_pieces': 16,
+                    'grid_size': 10,        # 10x10 grid
                     "DEBUG": False,         # Whether to print debug info
                     }
 
@@ -118,6 +119,7 @@ if __name__ == '__main__':
         env_config_dict = {
                 'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                 'num_pieces': 6,
+                'grid_size': 10,      # 10x10 grid
                 "DEBUG": True         # Whether to print debug info
                 }
 
