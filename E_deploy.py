@@ -54,7 +54,7 @@ class Inference:
 
 
     #==================================================================
-    # Step 1 - Run the environment and collect responses and coalitions
+    # Step 1 - Run the environment and collect responses
     #==================================================================
 
     def play_env(self):
