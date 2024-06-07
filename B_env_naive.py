@@ -47,6 +47,7 @@ Piece 3: [ 1, 1, 1, 1 ]    # Piece 3 is still available, so all sides are unconn
 
 '''
 
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches  #create shapes
 import networkx as nx

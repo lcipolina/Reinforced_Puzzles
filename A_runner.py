@@ -67,7 +67,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
                     "DEBUG": False,         # Whether to print debug info
                     }
 
-    setup_dict = { 'training_iterations': 2,
+    setup_dict = { 'training_iterations': 4,
                     'train_batch_size': 600,
                     'seeds_lst': [42],
                     'cpu_nodes': slurm_config.get('num_cpus', 7),
@@ -75,7 +75,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
                     }
 
     # TRAIN n EVAL
-    train_n_eval = False
+    train_n_eval = True
 
     # EVAL
    # train_n_eval = False # inference only
@@ -89,13 +89,17 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
 
     if train_n_eval:
         # TRAIN (the 'test_path' logic is TODO)
+
+        print("Inside A_runner.py")
+        
         checkpoint_path_trained = runner.train(train_path = train_path, test_path =test_path)
+        print('checkpoint_path_trained:',checkpoint_path_trained)
 
         # EVALUATE
         # NOTE: The 'compute_action' exploration = False gives better results than True
-        runner.evaluate(checkpoint_path = checkpoint_path_trained,
-                        train_path      = train_path,
-                        test_path       = test_path)
+       # runner.evaluate(checkpoint_path = checkpoint_path_trained,
+        #                train_path      = train_path,
+         #               test_path       = test_path)
 
     else: # Evaluate only
         checkpoint_path_evaluate = None  # It will take last checkpoint on file

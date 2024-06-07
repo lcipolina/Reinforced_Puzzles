@@ -2,7 +2,7 @@
 
 '''
 
-import torch, socket, os
+import socket, os
 import datetime
 import numpy as np
 import pandas as pd
@@ -54,7 +54,7 @@ class Inference:
 
 
     #==================================================================
-    # Step 1 - Run the environment and collect responses 
+    # Step 1 - Run the environment and collect responses
     #==================================================================
 
     def play_env(self):

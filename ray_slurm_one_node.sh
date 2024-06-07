@@ -1,34 +1,85 @@
 #!/bin/bash
 #SBATCH --job-name=ray_puzzle
 #SBATCH --account=cstdl
-#SBATCH --partition=booster  #batch # devel
 #SBATCH --nodes=1
-#SBATCH --ntasks=40  #96 CPUs in Booster
-#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=1  #96 CPUs in Booster
+#SBATCH --cpus-per-task=1  # Increase CPU allocation
+#SBATCH --tasks-per-node=1  # Required by RAY
+#SBATCH --exclusive         # Exclusive access to the node
+#SBATCH --mem=64GB # Increase memory allocation
 #SBATCH --time=02:00:00  #aparently max time allowed on devel
 #SBATCH --output=ray_job_%j.out
 
-export RAY_AIR_NEW_OUTPUT=0
+# If commented out - will take the default partition
+# #SBATCH --partition=booster #batch # can be left blank #dc-cpu #dc-cpu  in Jureca # develbooster  #booster  #dc-cpu-devel# #batch - en jureca
 
+
+
+
+#export RAY_AIR_NEW_OUTPUT=0
+
+# Increase file descriptor limits - makes it work!
+ulimit -n 65536
+
+# Set worker registration timeout
+export RAY_WORKER_REGISTER_TIMEOUT_SECONDS=60
+
+# Disable Ray memory monitor to avoid cgroup issues
+export RAY_DISABLE_MEMORY_MONITOR=1
 
 # Load modules or source your Python environment
-module load CUDA/12
+#module load Python/3.11
 
-source /p/home/jusers/cipolina-kun1/juwels/vision_env/sc_venv_template/activate.sh
-#source /p/home/jusers/cipolina-kun1/juwels/miniconda3/etc/profile.d/conda.sh
-#conda activate ray_2.6
+#This didn't work
+#source /p/project/ccstdl/cipolina-kun1/reinforced_puzzles/ray_2.2_env/activate.sh
+# Activate conda environment
 
-# Start the Ray head node
-ray start --head --port=6379 --block &
 
-#Include dashboard
-#ray start --head --port=6379 --block --verbose --temp-dir=/p/fastdata/mmlaion/cipolina/ --dashboard-host 0.0.0.0 &
+#Experiment
+#source /p/scratch/laionize/cache-kun1/miniconda3/bin/activate ray_2.12
+source /p/project/ccstdl/cipolina-kun1/reinforced_puzzles/miniconda3/etc/profile.d/conda.sh
+conda activate ray_2.12
+
+# Ensure no previous Ray instances are running and Clean up previous Ray session files
+ray stop
+rm -rf /p/home/jusers/cipolina-kun1/juwels/ray_tmp/*
+chmod -R 755 /p/home/jusers/cipolina-kun1/juwels/ray_tmp
+
+
+
+# Print the active conda environment to verify
+echo "Active conda environment:"
+conda info --envs
+echo "Current conda environment: $CONDA_DEFAULT_ENV"
+
+
+# Start Ray head node in the background. Need to provide dir where to find the head IP address
+#ray start --head --port=6379 --verbose --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp  --dashboard-host 0.0.0.0 &
+
+#ray start --head --port=6379 --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --include-dashboard=False --block
+
+# Test without block
+ray start --head --port=6379 --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --include-dashboard=False
+
+# For Jureca and other machines
+#/p/scratch/laionize/cache-kun1/ray_env/ray_2.2/venv/bin/python3 /p/scratch/laionize/cache-kun1/ray_env/ray_2.2/venv/bin/ray start --head --port=6379 --verbose --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp
+
+# For other machines that can't find the environment
+#/p/software/jurecadc/stages/2024/software/Python/3.11.3-GCCcore-12.3.0/bin/python3 /p/scratch/laionize/cache-kun1/ray_env/ray_2.2/venv/bin/ray start --head --port=6379 --verbose --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp
+
+
 
 # Sleep for a bit to ensure the head node starts properly
-sleep 10
+sleep 20
+
+
 
 # Run your Python script
-python -u /p/home/jusers/cipolina-kun1/juwels/coalitions/ray_init.py
+echo "Calling Python script"
+python3 -u /p/project/ccstdl/cipolina-kun1/reinforced_puzzles/ray_init.py
 
 # Stop Ray when done
 ray stop
+
+#try with this
+# /p/scratch/laionize/cache-kun1/ray_env/ray_2.2/venv/bin/ray stop

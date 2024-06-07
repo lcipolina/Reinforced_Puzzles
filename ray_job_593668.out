@@ -1,0 +1,357 @@
+2024-06-08 00:43:49,819	INFO scripts.py:1183 -- Did not find any active Ray processes.
+Active conda environment:
+# conda environments:
+#
+base                     /p/scratch/laionize/cache-kun1/miniconda3
+ray_2.12              *  /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12
+
+Current conda environment: ray_2.12
+2024-06-08 00:44:06,084	INFO usage_lib.py:469 -- Usage stats collection is enabled by default without user confirmation because this terminal is detected to be non-interactive. To disable this, add `--disable-usage-stats` to the command that starts the cluster, or run the following command: `ray disable-usage-stats` before starting the cluster. See https://docs.ray.io/en/master/cluster/usage-stats.html for more details.
+2024-06-08 00:44:06,084	INFO scripts.py:764 -- [37mLocal node IP[39m: [1m10.80.118.158[22m
+2024-06-08 00:44:10,143	SUCC scripts.py:801 -- [32m--------------------[39m
+2024-06-08 00:44:10,143	SUCC scripts.py:802 -- [32mRay runtime started.[39m
+2024-06-08 00:44:10,143	SUCC scripts.py:803 -- [32m--------------------[39m
+2024-06-08 00:44:10,143	INFO scripts.py:805 -- [36mNext steps[39m
+2024-06-08 00:44:10,143	INFO scripts.py:808 -- To add another node to this Ray cluster, run
+2024-06-08 00:44:10,143	INFO scripts.py:811 -- [1m  ray start --address='10.80.118.158:6379'[22m
+2024-06-08 00:44:10,143	INFO scripts.py:820 -- To connect to this Ray cluster:
+2024-06-08 00:44:10,143	INFO scripts.py:822 -- [35mimport[39m[26m ray
+2024-06-08 00:44:10,143	INFO scripts.py:823 -- ray[35m.[39m[26minit()
+2024-06-08 00:44:10,143	INFO scripts.py:854 -- To terminate the Ray runtime, run
+2024-06-08 00:44:10,143	INFO scripts.py:855 -- [1m  ray stop[22m
+2024-06-08 00:44:10,143	INFO scripts.py:858 -- To view the status of the cluster, use
+2024-06-08 00:44:10,144	INFO scripts.py:859 --   [1mray status[22m[26m
+Calling Python script
+Entering ray_init
+2024-06-08 00:44:30,946	INFO worker.py:1564 -- Connecting to existing Ray cluster at address: 10.80.118.158:6379...
+2024-06-08 00:44:30,982	INFO worker.py:1749 -- Connected to Ray cluster.
+Ray initialized
+calling the runner
+Inside A_runner.py
+Entering D_train.py
+we're on seed:  42
+Entered setup_n_fit on D_train
+2024-06-08 00:46:08,362	WARNING deprecation.py:50 -- DeprecationWarning: `rollouts` has been deprecated. Use `AlgorithmConfig.env_runners(..)` instead. This will raise an error in the future!
+2024-06-08 00:46:08,362	WARNING deprecation.py:50 -- DeprecationWarning: `AlgorithmConfig.env_runners(num_rollout_workers)` has been deprecated. Use `AlgorithmConfig.env_runners(num_env_runners)` instead. This will raise an error in the future!
+Starting a new experiment run in D_train.py.
+/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/tune/tune.py:580: UserWarning: The environment variable `RAY_AIR_LOCAL_CACHE_DIR` is deprecated and will be removed in the future. They are no longer used and will not have any effect. You should set the `storage_path` instead. 
+  warnings.warn(ENV_VAR_DEPRECATION_MESSAGE.format("RAY_AIR_LOCAL_CACHE_DIR"))
+/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/gymnasium/utils/passive_env_checker.py:135: UserWarning: [33mWARN: The obs returned by the `reset()` method was expecting numpy array dtype to be float32, actual type: float64[0m
+  logger.warn(
+/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/gymnasium/utils/passive_env_checker.py:159: UserWarning: [33mWARN: The obs returned by the `reset()` method is not within the observation space.[0m
+  logger.warn(f"{pre} is not within the observation space.")
+2024-06-08 00:46:09,121	WARNING tune_controller.py:2132 -- The maximum number of pending trials has been automatically set to the number of available cluster CPUs, which is high (281 CPUs/pending trials). If you're running an experiment with a large number of trials, this could lead to scheduling overhead. In this case, consider setting the `TUNE_MAX_PENDING_TRIALS_PG` environment variable to the desired maximum number of concurrent pending trials.
+2024-06-08 00:46:09,123	WARNING tune_controller.py:2132 -- The maximum number of pending trials has been automatically set to the number of available cluster CPUs, which is high (281 CPUs/pending trials). If you're running an experiment with a large number of trials, this could lead to scheduling overhead. In this case, consider setting the `TUNE_MAX_PENDING_TRIALS_PG` environment variable to the desired maximum number of concurrent pending trials.
+╭────────────────────────────────────────────────────────╮
+│ Configuration for experiment     puzzle                │
+├────────────────────────────────────────────────────────┤
+│ Search algorithm                 BasicVariantGenerator │
+│ Scheduler                        FIFOScheduler         │
+│ Number of trials                 1                     │
+╰────────────────────────────────────────────────────────╯
+
+View detailed results here: /p/home/jusers/cipolina-kun1/jusuf/ray_results/puzzle
+To visualize your results with TensorBoard, run: `tensorboard --logdir /p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/artifacts/2024-06-08_00-46-08/puzzle/driver_artifacts`
+
+Trial status: 1 PENDING
+Current time: 2024-06-08 00:46:09. Total running time: 0s
+Logical resource usage: 0/256 CPUs, 0/0 GPUs
+╭─────────────────────────────────────────╮
+│ Trial name                     status   │
+├─────────────────────────────────────────┤
+│ PPO_PuzzleGymEnv_bb5e7_00000   PENDING  │
+╰─────────────────────────────────────────╯
+
+Trial PPO_PuzzleGymEnv_bb5e7_00000 started with configuration:
+╭───────────────────────────────────────────────────────────────────────────╮
+│ Trial PPO_PuzzleGymEnv_bb5e7_00000 config                                 │
+├───────────────────────────────────────────────────────────────────────────┤
+│ _AlgorithmConfig__prior_exploration_config                                │
+│ _disable_action_flattening                                          False │
+│ _disable_execution_plan_api                                            -1 │
+│ _disable_initialize_loss_from_dummy_batch                           False │
+│ _disable_preprocessor_api                                           False │
+│ _enable_new_api_stack                                               False │
+│ _enable_rl_module_api                                                  -1 │
+│ _env_to_module_connector                                                  │
+│ _evaluation_parallel_to_training_wo_thread                          False │
+│ _fake_gpus                                                          False │
+│ _is_atari                                                                 │
+│ _learner_class                                                            │
+│ _learner_connector                                                        │
+│ _module_to_env_connector                                                  │
+│ _rl_module_spec                                                           │
+│ _run_training_always_in_thread                                      False │
+│ _tf_policy_handles_more_than_one_loss                               False │
+│ action_mask_key                                               action_mask │
+│ action_space                                                              │
+│ actions_in_input_normalized                                         False │
+│ add_default_connectors_to_env_to_module_pipeline                     True │
+│ add_default_connectors_to_learner_pipeline                           True │
+│ add_default_connectors_to_module_to_env_pipeline                     True │
+│ always_attach_evaluation_results                                     True │
+│ auto_wrap_old_gym_envs                                                 -1 │
+│ batch_mode                                              truncate_episodes │
+│ callbacks                                            ...efaultCallbacks'> │
+│ checkpoint_trainable_policies_only                                  False │
+│ clip_actions                                                        False │
+│ clip_param                                                            0.3 │
+│ clip_rewards                                                              │
+│ compress_observations                                               False │
+│ count_steps_by                                                  env_steps │
+│ create_env_on_driver                                                False │
+│ custom_async_evaluation_function                                       -1 │
+│ custom_eval_function                                                      │
+│ delay_between_env_runner_restarts_s                                   60. │
+│ disable_env_checking                                                   -1 │
+│ eager_max_retraces                                                     20 │
+│ eager_tracing                                                        True │
+│ enable_async_evaluation                                                -1 │
+│ enable_connectors                                                    True │
+│ enable_tf1_exec_eagerly                                             False │
+│ entropy_coeff                                                          0. │
+│ entropy_coeff_schedule                                                    │
+│ env                                                  ...ve.PuzzleGymEnv'> │
+│ env_config/DEBUG                                                    False │
+│ env_config/grid_size                                                   10 │
+│ env_config/num_pieces                                                  16 │
+│ env_config/sides                                             [5, 6, 7, 8] │
+│ env_runner_cls                                                            │
+│ env_runner_health_probe_timeout_s                                      60 │
+│ env_runner_restore_timeout_s                                         1800 │
+│ env_task_fn                                                               │
+│ episode_lookback_horizon                                                1 │
+│ evaluation_config                                                         │
+│ evaluation_duration                                                    10 │
+│ evaluation_duration_unit                                         episodes │
+│ evaluation_force_reset_envs_before_iteration                         True │
+│ evaluation_interval                                                       │
+│ evaluation_num_env_runners                                              0 │
+│ evaluation_num_workers                                                 -1 │
+│ evaluation_parallel_to_training                                     False │
+│ evaluation_sample_timeout_s                                          120. │
+│ exploration_config/type                                StochasticSampling │
+│ explore                                                              True │
+│ export_native_model_files                                           False │
+│ fake_sampler                                                        False │
+│ framework                                                           torch │
+│ gamma                                                                0.99 │
+│ grad_clip                                                                 │
+│ grad_clip_by                                                  global_norm │
+│ ignore_env_runner_failures                                          False │
+│ in_evaluation                                                       False │
+│ input                                                             sampler │
+│ keep_per_episode_custom_metrics                                     False │
+│ kl_coeff                                                              0.2 │
+│ kl_target                                                            0.01 │
+│ lambda                                                                 1. │
+│ local_gpu_idx                                                           0 │
+│ local_tf_session_args/inter_op_parallelism_threads                      8 │
+│ local_tf_session_args/intra_op_parallelism_threads                      8 │
+│ log_level                                                            WARN │
+│ log_sys_usage                                                        True │
+│ logger_config                                                             │
+│ logger_creator                                                            │
+│ lr                                                                0.00005 │
+│ lr_schedule                                                               │
+│ max_num_env_runner_restarts                                          1000 │
+│ max_requests_in_flight_per_sampler_worker                               2 │
+│ metrics_episode_collection_timeout_s                                  60. │
+│ metrics_num_episodes_for_smoothing                                    100 │
+│ min_sample_timesteps_per_iteration                                      0 │
+│ min_time_s_per_iteration                                                  │
+│ min_train_timesteps_per_iteration                                       0 │
+│ mini_batch_size_per_learner                                               │
+│ model/_disable_action_flattening                                    False │
+│ model/_disable_preprocessor_api                                     False │
+│ model/_time_major                                                   False │
+│ model/_use_default_native_models                                       -1 │
+│ model/always_check_shapes                                           False │
+│ model/attention_dim                                                    64 │
+│ model/attention_head_dim                                               32 │
+│ model/attention_init_gru_gate_bias                                    2.0 │
+│ model/attention_memory_inference                                       50 │
+│ model/attention_memory_training                                        50 │
+│ model/attention_num_heads                                               1 │
+│ model/attention_num_transformer_units                                   1 │
+│ model/attention_position_wise_mlp_dim                                  32 │
+│ model/attention_use_n_prev_actions                                      0 │
+│ model/attention_use_n_prev_rewards                                      0 │
+│ model/conv_activation                                                relu │
+│ model/conv_bias_initializer                                               │
+│ model/conv_bias_initializer_config                                        │
+│ model/conv_filters                                                        │
+│ model/conv_kernel_initializer                                             │
+│ model/conv_kernel_initializer_config                                      │
+│ model/conv_transpose_bias_initializer                                     │
+│ model/conv_transpose_bias_initializer_config                              │
+│ model/conv_transpose_kernel_initializer                                   │
+│ model/conv_transpose_kernel_initializer_config                            │
+│ model/custom_action_dist                                                  │
+│ model/custom_model                                    masked_action_model │
+│ model/custom_preprocessor                                                 │
+│ model/dim                                                              84 │
+│ model/encoder_latent_dim                                                  │
+│ model/fcnet_activation                                               tanh │
+│ model/fcnet_bias_initializer                                              │
+│ model/fcnet_bias_initializer_config                                       │
+│ model/fcnet_hiddens                                            [256, 256] │
+│ model/fcnet_weights_initializer                                           │
+│ model/fcnet_weights_initializer_config                                    │
+│ model/framestack                                                     True │
+│ model/free_log_std                                                  False │
+│ model/grayscale                                                     False │
+│ model/lstm_bias_initializer                                               │
+│ model/lstm_bias_initializer_config                                        │
+│ model/lstm_cell_size                                                  256 │
+│ model/lstm_use_prev_action                                          False │
+│ model/lstm_use_prev_action_reward                                      -1 │
+│ model/lstm_use_prev_reward                                          False │
+│ model/lstm_weights_initializer                                            │
+│ model/lstm_weights_initializer_config                                     │
+│ model/max_seq_len                                                      20 │
+│ model/no_final_linear                                               False │
+│ model/post_fcnet_activation                                          relu │
+│ model/post_fcnet_bias_initializer                                         │
+│ model/post_fcnet_bias_initializer_config                                  │
+│ model/post_fcnet_hiddens                                               [] │
+│ model/post_fcnet_weights_initializer                                      │
+│ model/post_fcnet_weights_initializer_config                               │
+│ model/use_attention                                                 False │
+│ model/use_lstm                                                      False │
+│ model/vf_share_layers                                               False │
+│ model/zero_mean                                                      True │
+│ normalize_actions                                                    True │
+│ num_consecutive_env_runner_failures_tolerance                         100 │
+│ num_cpus_for_driver                                                     1 │
+│ num_cpus_per_learner_worker                                             1 │
+│ num_cpus_per_worker                                                     1 │
+│ num_envs_per_env_runner                                                 1 │
+│ num_gpus                                                                0 │
+│ num_gpus_per_learner_worker                                             0 │
+│ num_gpus_per_worker                                                     0 │
+│ num_learner_workers                                                     0 │
+│ num_sgd_iter                                                           30 │
+│ num_workers                                                             1 │
+│ observation_filter                                               NoFilter │
+│ observation_fn                                                            │
+│ observation_space                                                         │
+│ offline_sampling                                                    False │
+│ ope_split_batch_by_episode                                           True │
+│ output                                                                    │
+│ output_compress_columns                                ['obs', 'new_obs'] │
+│ output_max_file_size                                             67108864 │
+│ placement_strategy                                                   PACK │
+│ policies/default_policy                              ...None, None, None) │
+│ policies_to_train                                                         │
+│ policy_map_cache                                                       -1 │
+│ policy_map_capacity                                                   100 │
+│ policy_mapping_fn                                    ...t 0x15194ca94670> │
+│ policy_states_are_swappable                                         False │
+│ postprocess_inputs                                                  False │
+│ preprocessor_pref                                                deepmind │
+│ recreate_failed_env_runners                                         False │
+│ remote_env_batch_wait_ms                                                0 │
+│ remote_worker_envs                                                  False │
+│ render_env                                                          False │
+│ replay_sequence_length                                                    │
+│ restart_failed_sub_environments                                     False │
+│ rollout_fragment_length                                              auto │
+│ sample_collector                                     ...leListCollector'> │
+│ sample_timeout_s                                                      60. │
+│ sampler_perf_stats_ema_coef                                               │
+│ seed                                                                   42 │
+│ sgd_minibatch_size                                                     64 │
+│ shuffle_buffer_size                                                     0 │
+│ shuffle_sequences                                                    True │
+│ simple_optimizer                                                       -1 │
+│ sync_filters_on_rollout_workers_timeout_s                             10. │
+│ synchronize_filters                                                    -1 │
+│ tf_session_args/allow_soft_placement                                 True │
+│ tf_session_args/device_count/CPU                                        1 │
+│ tf_session_args/gpu_options/allow_growth                             True │
+│ tf_session_args/inter_op_parallelism_threads                            2 │
+│ tf_session_args/intra_op_parallelism_threads                            2 │
+│ tf_session_args/log_device_placement                                False │
+│ torch_compile_learner                                               False │
+│ torch_compile_learner_dynamo_backend                             inductor │
+│ torch_compile_learner_dynamo_mode                                         │
+│ torch_compile_learner_what_to_compile                ...ile.FORWARD_TRAIN │
+│ torch_compile_worker                                                False │
+│ torch_compile_worker_dynamo_backend                                onnxrt │
+│ torch_compile_worker_dynamo_mode                                          │
+│ train_batch_size                                                      600 │
+│ train_batch_size_per_learner                                              │
+│ update_worker_filter_stats                                           True │
+│ use_critic                                                           True │
+│ use_gae                                                              True │
+│ use_kl_loss                                                          True │
+│ use_worker_filter_stats                                              True │
+│ validate_env_runners_after_construction                              True │
+│ vf_clip_param                                                         10. │
+│ vf_loss_coeff                                                          1. │
+│ vf_share_layers                                                        -1 │
+│ worker_cls                                                             -1 │
+╰───────────────────────────────────────────────────────────────────────────╯
+
+Trial PPO_PuzzleGymEnv_bb5e7_00000 finished iteration 1 at 2024-06-08 00:46:30. Total running time: 21s
+╭────────────────────────────────────────────────────╮
+│ Trial PPO_PuzzleGymEnv_bb5e7_00000 result          │
+├────────────────────────────────────────────────────┤
+│ env_runner_results/episode_len_mean           55.4 │
+│ env_runner_results/episode_return_mean        -5.4 │
+│ num_env_steps_sampled_lifetime                 600 │
+╰────────────────────────────────────────────────────╯
+
+Trial PPO_PuzzleGymEnv_bb5e7_00000 finished iteration 2 at 2024-06-08 00:46:33. Total running time: 24s
+╭────────────────────────────────────────────────────╮
+│ Trial PPO_PuzzleGymEnv_bb5e7_00000 result          │
+├────────────────────────────────────────────────────┤
+│ env_runner_results/episode_len_mean           59.2 │
+│ env_runner_results/episode_return_mean        -9.2 │
+│ num_env_steps_sampled_lifetime                1200 │
+╰────────────────────────────────────────────────────╯
+
+Trial PPO_PuzzleGymEnv_bb5e7_00000 finished iteration 3 at 2024-06-08 00:46:35. Total running time: 26s
+╭────────────────────────────────────────────────────╮
+│ Trial PPO_PuzzleGymEnv_bb5e7_00000 result          │
+├────────────────────────────────────────────────────┤
+│ env_runner_results/episode_len_mean           59.5 │
+│ env_runner_results/episode_return_mean        -9.5 │
+│ num_env_steps_sampled_lifetime                1800 │
+╰────────────────────────────────────────────────────╯
+
+Trial PPO_PuzzleGymEnv_bb5e7_00000 finished iteration 4 at 2024-06-08 00:46:37. Total running time: 28s
+╭────────────────────────────────────────────────────────╮
+│ Trial PPO_PuzzleGymEnv_bb5e7_00000 result              │
+├────────────────────────────────────────────────────────┤
+│ env_runner_results/episode_len_mean            60.3846 │
+│ env_runner_results/episode_return_mean        -10.3846 │
+│ num_env_steps_sampled_lifetime                    2400 │
+╰────────────────────────────────────────────────────────╯
+Trial PPO_PuzzleGymEnv_bb5e7_00000 saved a checkpoint for iteration 4 at: (local)/p/home/jusers/cipolina-kun1/jusuf/ray_results/puzzle/PPO_PuzzleGymEnv_bb5e7_00000_0_2024-06-08_00-46-09/checkpoint_000000
+
+Trial PPO_PuzzleGymEnv_bb5e7_00000 completed after 4 iterations at 2024-06-08 00:46:37. Total running time: 28s
+2024-06-08 00:46:37,828	INFO tune.py:1007 -- Wrote the latest version of all result files and experiment state to '/p/home/jusers/cipolina-kun1/jusuf/ray_results/puzzle' in 0.0202s.
+
+Trial status: 1 TERMINATED
+Current time: 2024-06-08 00:46:37. Total running time: 28s
+Logical resource usage: 2.0/256 CPUs, 0/0 GPUs
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                     status         iter     total time (s)     ts     reward     episode_reward_max     episode_reward_min     episode_len_mean     episodes_this_iter │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ PPO_PuzzleGymEnv_bb5e7_00000   TERMINATED        4            9.11918   2400   -10.3846                     12                    -45              60.3846                      9 │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+BEST RESULT:
+ Reward_max: 12.0
+ Reward_mmean: -10.384615384615385
+Ray initialization or script execution failed: 'Result' object is not subscriptable
+2024-06-08 00:46:41,253	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/core/src/ray/raylet/raylet --raylet_socket_name=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/sockets/raylet --store_socket_name=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/sockets/plasma_store --object_manager_port=0 --min_worker_port=10002 --max_worker_port=19999 --node_manager_port=0 --node_id=108eafd5314089a336fc804f41b6dd6f474fe38c44fcc932bc75c611 --node_ip_address=10.80.118.158 --maximum_startup_concurrency=256 --static_resource_list=node:10.80.118.158,1.0,node:__internal_head__,1.0,CPU,256,memory,166240433152,object_store_memory,75531614208 "--python_worker_command=/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/_private/workers/setup_worker.py /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/_private/workers/default_worker.py --node-ip-address=10.80.118.158 --node-manager-port=RAY_NODE_MANAGER_PORT_PLACEHOLDER --object-store-name=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/sockets/plasma_store --raylet-name=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/sockets/raylet --redis-address=None --metrics-agent-port=41711 --runtime-env-agent-port=43206 --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5 --runtime-env-agent-port=43206 --gcs-address=10.80.118.158:6379 --session-name=session_2024-06-08_00-44-06_086419_22056 --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --webui= --cluster-id=468eab339b2fe222c0aa0392f9a806c2ad191ff2082c4ed15bf4c37f RAY_WORKER_DYNAMIC_OPTION_PLACEHOLDER" --java_worker_command= --cpp_worker_command= --native_library_path=/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/cpp/lib --temp_dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --session_dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056 --log_dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --resource_dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/runtime_resources --metrics-agent-port=41711 --metrics_export_port=53686 --runtime_env_agent_port=43206 --object_store_memory=75531614208 --plasma_directory=/dev/shm --ray-debugger-external=0 --gcs-address=10.80.118.158:6379 --session-name=session_2024-06-08_00-44-06_086419_22056 --labels= --cluster-id=468eab339b2fe222c0aa0392f9a806c2ad191ff2082c4ed15bf4c37f --head --num_prestart_python_workers=256 "--dashboard_agent_command=/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python -u /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/dashboard/agent.py --node-ip-address=10.80.118.158 --metrics-export-port=53686 --dashboard-agent-port=41711 --listen-port=52365 --node-manager-port=RAY_NODE_MANAGER_PORT_PLACEHOLDER --object-store-name=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/sockets/plasma_store --raylet-name=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/sockets/raylet --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --session-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056 --log-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5 --session-name=session_2024-06-08_00-44-06_086419_22056 --gcs-address=10.80.118.158:6379" "--runtime_env_agent_command=/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python -u /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/_private/runtime_env/agent/main.py --node-ip-address=10.80.118.158 --runtime-env-agent-port=43206 --gcs-address=10.80.118.158:6379 --runtime-env-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/runtime_resources --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5 --log-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp"[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:41,724	INFO scripts.py:1141 -- 1/1 stopped.2024-06-08 00:46:42,109	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python -u /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/autoscaler/_private/monitor.py --logs-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5 --gcs-address=10.80.118.158:6379 --monitor-ip=10.80.118.158[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:42,109	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python -u /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/_private/log_monitor.py --session-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056 --logs-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --gcs-address=10.80.118.158:6379 --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:42,111	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python -m ray.util.client.server --address=10.80.118.158:6379 --host=0.0.0.0 --port=10001 --mode=proxy --runtime-env-agent-address=http://10.80.118.158:43206[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:42,116	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python -u /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/_private/log_monitor.py --session-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056 --logs-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --gcs-address=10.80.118.158:6379 --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:42,120	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/bin/python /p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/dashboard/dashboard.py --host=127.0.0.1 --port=8265 --port-retries=0 --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --log-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --session-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056 --logging-rotate-bytes=536870912 --logging-rotate-backup-count=5 --gcs-address=10.80.118.158:6379 --node-ip-address=10.80.118.158 --modules-to-load=UsageStatsHead --disable-frontend[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:42,136	INFO scripts.py:1141 -- 1/4 stopped.2024-06-08 00:46:42,388	INFO scripts.py:1141 -- 2/4 stopped.2024-06-08 00:46:42,388	INFO scripts.py:1141 -- 3/4 stopped.2024-06-08 00:46:42,681	INFO scripts.py:1141 -- 4/4 stopped.2024-06-08 00:46:43,062	VINFO scripts.py:1111 -- Send termination request to `[1m/p/scratch/laionize/cache-kun1/miniconda3/envs/ray_2.12/lib/python3.9/site-packages/ray/core/src/ray/gcs/gcs_server --log_dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp/session_2024-06-08_00-44-06_086419_22056/logs --config_list=eyJvYmplY3Rfc3BpbGxpbmdfY29uZmlnIjogIntcInR5cGVcIjogXCJmaWxlc3lzdGVtXCIsIFwicGFyYW1zXCI6IHtcImRpcmVjdG9yeV9wYXRoXCI6IFwiL3AvaG9tZS9qdXNlcnMvY2lwb2xpbmEta3VuMS9qdXdlbHMvcmF5X3RtcC9zZXNzaW9uXzIwMjQtMDYtMDhfMDAtNDQtMDZfMDg2NDE5XzIyMDU2XCJ9fSIsICJpc19leHRlcm5hbF9zdG9yYWdlX3R5cGVfZnMiOiB0cnVlfQ== --gcs_server_port=6379 --metrics-agent-port=41711 --node-ip-address=10.80.118.158 --session-name=session_2024-06-08_00-44-06_086419_22056[22m[26m` [2m(via SIGTERM)[22m[26m
+2024-06-08 00:46:43,394	INFO scripts.py:1141 -- 1/1 stopped.2024-06-08 00:46:43,395	SUCC scripts.py:1186 -- [32mStopped all 6 Ray processes.[39m

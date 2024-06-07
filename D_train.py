@@ -28,8 +28,8 @@ from D_ppo_config import get_sarl_trainer_config                  # Tranier conf
 output_dir = os.path.expanduser("~/ray_results") # Default output directory
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
-# Register the custom model - used by D_ppo_config.py
-ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
+
+
 
 
 
@@ -40,16 +40,25 @@ class RunRay:
     def __init__(self, setup_dict,custom_env_config):
         current_dir            = os.path.dirname(os.path.realpath(__file__))
         self.jason_path        = os.path.join(current_dir, 'results', 'best_checkpoint_'+TIMESTAMP+'.json')
-        self.clear_json(self.jason_path)
+       # self.clear_json(self.jason_path)
+
+        print("Entering D_train.py")
 
         self.setup_dict        = setup_dict
         self.custom_env_config = custom_env_config
         self.experiment_name   = setup_dict.get('experiment_name', 'puzzle')
 
+        # Register the custom model - used by D_ppo_config.py
+        ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
+
 
     def setup_n_fit(self):
         '''Setup trainer dict and train model
         '''
+
+        print("Entered setup_n_fit on D_train")
+
+
 
         #_____________________________________________________________________________________________
         # Setup Config
@@ -89,7 +98,7 @@ class RunRay:
             os.remove(state_file_path) # Clear the state file after handling
 
         else: # Train from scratch
-            print("Starting a new experiment run.")
+            print("Starting a new experiment run in D_train.py.")
             tuner  = tune.Tuner("PPO",
                     param_space = trainer_config,
                     run_config = air.RunConfig(
@@ -100,7 +109,7 @@ class RunRay:
                                                                num_to_keep= 3 ),#keep only the last 3 checkpoints
                         #callbacks = [wandb_callbacks],  # WandB local_mode = False only!
                         verbose= 2, #0 for less output while training - 3 for seeing custom_metrics better
-                        local_dir = output_dir
+                        storage_path = output_dir  #new variable
                             )
                         )
 
@@ -116,8 +125,8 @@ class RunRay:
 
     def train(self):
         ''' Calls Ray to train the model  '''
-        if ray.is_initialized(): ray.shutdown()
-        ray.init(ignore_reinit_error=True,local_mode=True)
+        #if ray.is_initialized(): ray.shutdown()
+        #ray.init(ignore_reinit_error=True,local_mode=True)
 
         seeds_lst  = self.setup_dict['seeds_lst']
         for _seed in seeds_lst:
@@ -125,10 +134,10 @@ class RunRay:
             print("we're on seed: ", _seed)
             self.setup_dict['seed'] = _seed
             best_res_grid           = self.setup_n_fit()
-            result_dict             = self.save_results(best_res_grid,None,self.jason_path, _seed) #print results, saves checkpoints and metrics
+          #  result_dict             = self.save_results(best_res_grid,None,self.jason_path, _seed) #print results, saves checkpoints and metrics
 
         ray.shutdown()
-        return result_dict  # checkpoint path
+        return best_res_grid # result_dict  # checkpoint path
 
     #____________________________________________________________________________________________
     #  Analize results and save files
