@@ -2,17 +2,15 @@
 #SBATCH --job-name=ray_puzzle
 #SBATCH --account=cstdl
 #SBATCH --nodes=1
-#SBATCH --ntasks=1  #96 CPUs in Booster
-#SBATCH --cpus-per-task=1  # Increase CPU allocation
-#SBATCH --tasks-per-node=1  # Required by RAY
-#SBATCH --exclusive         # Exclusive access to the node
-#SBATCH --mem=64GB # Increase memory allocation
-#SBATCH --time=02:00:00  #aparently max time allowed on devel
+#SBATCH --ntasks=31    #31 available in JUSUF batch # How many concurrent tasks. Total: 96 CPUs in Booster , 128 CPUs in Jusuf
+#SBATCH --cpus-per-task=1       # How many CPUs each env needs. OBS: Total resources available = ntasks* cpus-per-task
+#SBATCH --exclusive               # Exclusive access to the node
+#SBATCH --time=02:00:00           # Max time allowed on devel
 #SBATCH --output=ray_job_%j.out
 
 # If commented out - will take the default partition
-# #SBATCH --partition=booster #batch # can be left blank #dc-cpu #dc-cpu  in Jureca # develbooster  #booster  #dc-cpu-devel# #batch - en jureca
-
+# #SBATCH --partition=dc-cpu-devel #booster #batch # can be left blank #dc-cpu #dc-cpu  in Jureca # develbooster  #booster  #dc-cpu-devel# #batch - default en jusuf
+# #SBATCH --mem=64GB # Increase memory allocation -- Not needed and might decrease the number of concurrent tasks
 
 
 
@@ -26,6 +24,9 @@ export RAY_WORKER_REGISTER_TIMEOUT_SECONDS=60
 
 # Disable Ray memory monitor to avoid cgroup issues
 export RAY_DISABLE_MEMORY_MONITOR=1
+
+# Set the maximum number of concurrent pending trials
+export TUNE_MAX_PENDING_TRIALS_PG=100  # Adjust this number as needed
 
 # Load modules or source your Python environment
 #module load Python/3.11
@@ -48,9 +49,9 @@ chmod -R 755 /p/home/jusers/cipolina-kun1/juwels/ray_tmp
 
 
 # Print the active conda environment to verify
-echo "Active conda environment:"
-conda info --envs
-echo "Current conda environment: $CONDA_DEFAULT_ENV"
+# echo "Active conda environment:"
+# conda info --envs
+# echo "Current conda environment: $CONDA_DEFAULT_ENV"
 
 
 # Start Ray head node in the background. Need to provide dir where to find the head IP address
@@ -59,7 +60,7 @@ echo "Current conda environment: $CONDA_DEFAULT_ENV"
 #ray start --head --port=6379 --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --include-dashboard=False --block
 
 # Test without block
-ray start --head --port=6379 --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --include-dashboard=False
+ray start --head --port=6379  --num-cpus=32  --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp --include-dashboard=False
 
 # For Jureca and other machines
 #/p/scratch/laionize/cache-kun1/ray_env/ray_2.2/venv/bin/python3 /p/scratch/laionize/cache-kun1/ray_env/ray_2.2/venv/bin/ray start --head --port=6379 --verbose --temp-dir=/p/home/jusers/cipolina-kun1/juwels/ray_tmp

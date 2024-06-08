@@ -518,7 +518,7 @@ class PuzzleGymEnv(gym.Env):
         # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
         self.observation_space = Dict({
                     'current_puzzle'         : Box(low=-1, high=1, shape=(self.env.grid_size, self.env.grid_size)),         # 2x2 grid for a 4-piece puzzle
-                    'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides
+                    'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1)),    # Availability of pieces and sides
                     'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8), # Availability of connections
                     'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                              # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece
                    'mask_target_side_index'  : Box(low=0, high=1, shape=(self.env.num_pieces * self.env.num_sides, ), dtype=np.uint8),   # Mask for selecting the target piece and side in 2D - If the piece is placed and has at least one available side

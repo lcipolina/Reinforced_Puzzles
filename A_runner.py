@@ -91,7 +91,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
         # TRAIN (the 'test_path' logic is TODO)
 
         print("Inside A_runner.py")
-        
+
         checkpoint_path_trained = runner.train(train_path = train_path, test_path =test_path)
         print('checkpoint_path_trained:',checkpoint_path_trained)
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
         env_config_dict = {
                 'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                'num_pieces': 6,
+                'num_pieces': 20,
                 'grid_size': 10,      # 10x10 grid
                 "DEBUG": True         # Whether to print debug info
                 }
