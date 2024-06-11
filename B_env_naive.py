@@ -557,22 +557,23 @@ class PuzzleGymEnv(gym.Env):
         if config is None:  # Default configuration
             config = {'sides': [5, 6, 7, 8],    # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                       'num_pieces': 4}
+
         self.env = PuzzleEnvironment(config)
 
         #  The action is defined as a tuple of 3 values: (piece_id, target_id, side_index * target_side_index)
         self.action_space = MultiDiscrete([
             self.env.num_pieces,  # active_piece_id
-            self.env.num_sides,   # active_piece_side_index
+            self.env.num_sides,                        # active_piece_side_index. The INDEX of the side, not the actual value.
             self.env.num_pieces * self.env.num_sides  # combined dimension for target_piece_id and side_target_piece_index
         ])
 
         # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
         self.observation_space = Dict({
                     'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),         # 2x2 grid for a 4-piece puzzle
-                    'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides
-                    'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8), # Availability of connections
-                    'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                              # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece
-                   'mask_target_side_index'  : Box(low=0, high=1, shape=(self.env.num_pieces * self.env.num_sides, ), dtype=np.uint8),   # Mask for selecting the target piece and side in 2D - If the piece is placed and has at least one available side
+                    'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
+                    'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8),           # Availability of connections
+                    'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                                # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece
+                   'mask_target_side_index'  : Box(low=0, high=1, shape=(self.env.num_pieces * self.env.num_sides, ), dtype=np.uint8),          # Mask for selecting the target piece and side in 2D - If the piece is placed and has at least one available side
                 })
 
         '''
