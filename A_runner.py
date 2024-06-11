@@ -61,9 +61,15 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     #test_path  = '/p/home/jusers/cipolina-kun1/juwels/coalitions/dist_testing_jan31.txt'
 
     #if setup_dict is None or env_config_dict is None:  #TODO: uncomment this!
+    sides_list = [
+    [5, 6, 7, 8],
+    [7, 8, 5, 6],
+    [5, 6, 7, 8],
+    [7, 8, 5, 6]
+    ]
     env_config_dict = {
-                    'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                    'num_pieces': 6,
+                    'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+                    'num_pieces': len(sides_list),
                     'grid_size': 20,        # 10x10 grid (100 pieces in total)
                     "DEBUG": False,         # Whether to print debug info
                     }
@@ -76,7 +82,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
                     }
 
     # TRAIN n EVAL
-    train_n_eval = True
+    train_n_eval = False
 
     # EVAL
    # train_n_eval = False # inference only
@@ -117,12 +123,18 @@ if __name__ == '__main__':
 
         # For SLURM these need to be inside a function
 
+        sides_list = [
+        [5, 6, 7, 8],
+        [7, 8, 5, 6],
+        [5, 6, 7, 8],
+        [7, 8, 5, 6]
+        ]
         env_config_dict = {
-                'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                'num_pieces': 6,
-                'grid_size': 10,      # 10x10 grid
-                "DEBUG": False         # Whether to print debug info
-                }
+                        'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+                        'num_pieces': len(sides_list),
+                        'grid_size': 20,        # 10x10 grid (100 pieces in total)
+                        "DEBUG": False,         # Whether to print debug info
+                        }
 
         setup_dict = { 'training_iterations': 2,
                         'train_batch_size': 600,

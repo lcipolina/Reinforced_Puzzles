@@ -68,12 +68,13 @@ class Piece:
         self.available_sides = [True] * len(sides)  # All sides are initially available for connection
 
     def rotate(self, degrees):
-         # Allows the piece to be rotated in 90-degree increments.  This method updates the sides and available_sides
-        if degrees % 90 != 0:
+        num_sides = len(self.sides_lst)
+        if degrees % (360 // num_sides) != 0:
             return
-        num_rotations = degrees // 90
+        num_rotations = degrees // (360 // num_sides)
         self.sides_lst = self.sides_lst[-num_rotations:] + self.sides_lst[:-num_rotations]
         self.available_sides = self.available_sides[-num_rotations:] + self.available_sides[:-num_rotations]
+
 
     def connect_side(self, side_index):
         # Mark a side as no longer available once it's connected. Returns True if the side was available
@@ -90,28 +91,26 @@ class Piece:
         return new_piece
 
     @classmethod # Alternative class constructor to generate a list of puzzle pieces with unique sides
-    def _generate_pieces(cls,sides_lst = [1,2,3,4], num_pieces=4):
+    def _generate_pieces(cls, sides_lst):
         '''Generates a list of puzzle pieces with unique sides. Each piece has an ID and a list of sides.
+           Arguments:
            'cls' is used to reference the class itself (and not instances of the class), allowing us to create new instances of the class.
+           'sides_lst' is a list of lists, where each inner list represents the sides of a piece.
         '''
-        # Generate a list of puzzle pieces, assigning an ID to each piece and 'sides_lst[:]' creates a shallow copy of the sides list so each piece has the sides in the same initial order
-        pieces = [cls(i, sides_lst[:]) for i in range(num_pieces)]  # IDs now start at 0
-        # Generate pieces with sides in different orders to ensure variability
-        '''
-        # TODO: Shuffling the sides of each piece is disabled at first to make the initial state of the puzzle easier to visualize
-        for piece in pieces:
-           random.shuffle(piece.sides_lst) # Shuffle the sides for each piece to simulate a real puzzle
-        '''
-        return pieces  # List of 4 'Piece' objects with their initial states [Piece(id=1, sides_lst=[5,6,7,8], available_sides=[True, True, True, True]),....]
+        pieces = []
+        for i, sides in enumerate(sides_lst):
+            pieces.append(cls(i , sides)) # Create a new piece with a unique ID and sides
+        return pieces
+
 
 class PuzzleEnvironment:
     def __init__(self, config=None):
-        self.sides          = config.get("sides", [5, 6, 7, 8])                                            # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+        self.sides          = config.get("sides", [[5, 6, 7, 8]])                                          # List of Lists -  Sides are labeled to be different from the keynumbers: "1" for available, etc.
         self.num_pieces     = config.get("num_pieces", 4)                                                  # Number of pieces in the puzzle
         self.num_sides      = len(self.sides)
         self.DEBUG          = config.get("DEBUG", False)                                                   # Whether to print or not
         self.grid_size      = config.get("grid_size", 10)                                                  # height and width # int(np.sqrt(self.num_pieces))  # Generates 4 pieces with 4 sides
-        self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides,num_pieces=self.num_pieces)     # Generate pieces, sides and availability
+        self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides)     # Generate pieces, sides and availability
 
         # Define the puzzle grid dimensions (2x2 for 4 pieces)
         # Current puzzle is an array (then converted to graph for comparisons), target puzzle is a graph
@@ -305,54 +304,6 @@ class PuzzleEnvironment:
         return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
     # TODO: need to fix this with the correct side number
-    def place_piece_old(self, rotated_piece, side_index, target_position, target_side_idx):
-        """
-        Place a piece adjacent to the target piece based on the connecting side.
-
-        This function determines the correct new position for the current piece relative to the target piece,
-        using the side_index to infer the correct adjacency direction. It ensures that the placement
-        is within the boundaries of the puzzle grid and that the calculated position is not already occupied.
-
-        Parameters:
-        - current_piece_id (int): The ID of the current piece to be placed.
-        - side_index (int): The index representing the side of the target piece where the current piece will connect.
-        - target_position (tuple): The current position (row, column) of the target piece in the grid.
-
-        Returns:
-        - bool: True if the piece was successfully placed, False otherwise.
-        """
-
-        # Mapping from side indices to their corresponding row and column offsets in the grid.
-        # This map translates the side connection into grid coordinates:
-        # 0 - Top: place the current piece above the target piece.
-        # 1 - Right: place the current piece to the right of the target piece.
-        # 2 - Bottom: place the current piece below the target piece.
-        # 3 - Left: place the current piece to the left of the target piece.
-
-        connection_map = {
-                (0, 2): (-1, 0),  # Current top side connects to target bottom side
-                (1, 3): (0, 1),   # Current right side connects to target left side
-                (2, 0): (1, 0),   # Current bottom side connects to target top side
-                (3, 1): (0, -1)   # Current left side connects to target right side
-            }
-
-        # Calculate the new position based on the target piece's position and the connecting sides
-        if (side_index, target_side_idx) in connection_map:
-            row_offset, col_offset = connection_map[(side_index, target_side_idx)]
-            new_position = (target_position[0] + row_offset, target_position[1] + col_offset)
-
-            # Ensure the new position is within bounds and not already occupied
-            if (0 <= new_position[0] < self.grid_size) and (0 <= new_position[1] < self.grid_size):
-                if self.current_puzzle[new_position[0], new_position[1]] == -1:  # Check if the new position is empty
-                    self.current_puzzle[new_position[0], new_position[1]] = rotated_piece.id
-                    self.pieces_lst[rotated_piece.id] = rotated_piece  # Update the piece in the list with its new rotation
-                    return True
-                else:
-                    a = 0  #TODO: this is wrong!
-                 #   my_print(f"Position {new_position} is already occupied.", self.DEBUG)
-
-       # my_print(f"Invalid placement for piece {rotated_piece.id} at side {side_index} adjacent to target position {target_position}", self.DEBUG)
-        return False
 
     def place_piece(self, rotated_piece, side_index, target_position, target_side_idx):
         '''Place a piece adjacent to the target piece based on the connecting sides.'''
@@ -384,7 +335,6 @@ class PuzzleEnvironment:
         return False
 
 
-
     def update_current_puzzle(self, current_piece_id, target_piece_id, side_idx, target_side_idx):
         '''Update the current puzzle grid by placing the current piece adjacent to the target piece based on the connecting side.'''
         target_position = np.argwhere(self.current_puzzle == target_piece_id)  # Find the position of the target piece in the puzzle grid
@@ -401,9 +351,6 @@ class PuzzleEnvironment:
         return False
 
 
-
-
-
     def process_action(self, action):
         '''Process the action to connect two pieces if the rules permit.
             Checks if the action is valid  - if the two pieces can be connected based on the puzzle's rules.
@@ -413,7 +360,7 @@ class PuzzleEnvironment:
             Agent will then receive a reward based on whether the action was valid
             meaning that the pieces could be connected and the puzzle state was updated accordingly.
         '''
-        #TODO: the action returns the side_idx in (0-4) numbers, but the sides are labeled as 5,6,7,8
+        #OBS: the action returns the side_idx in (0-4) numbers, but the sides are labeled as 5,6,7,8
         current_piece_id, side_idx, combined_target_idx = action
 
         # Decode the combined_target_index to get target_piece_id and target_side_index
@@ -556,16 +503,16 @@ class PuzzleGymEnv(gym.Env):
         super(PuzzleGymEnv, self).__init__()
 
         if config is None:  # Default configuration
-            config = {'sides': [5, 6, 7, 8],    # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+            config = {'sides': [[5, 6, 7, 8]],    # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                       'num_pieces': 4}
 
         self.env = PuzzleEnvironment(config)
 
         #  The action is defined as a tuple of 3 values: (piece_id, target_id, side_index * target_side_index)
         self.action_space = MultiDiscrete([
-            self.env.num_pieces,  # active_piece_id
+            self.env.num_pieces,                       # active_piece_id
             self.env.num_sides,                        # active_piece_side_index. The INDEX of the side, not the actual value.
-            self.env.num_pieces * self.env.num_sides  # combined dimension for target_piece_id and side_target_piece_index
+            self.env.num_pieces * self.env.num_sides   # combined dimension for target_piece_id and side_target_piece_index
         ])
 
         # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
@@ -615,9 +562,15 @@ class PuzzleGymEnv(gym.Env):
 
 if __name__ == "__main__":
     # Initialize the puzzle environment
+    sides_list = [
+        [5, 6, 7, 8],
+        [7, 8, 5, 6],
+        [5, 6, 7, 8],
+        [7, 8, 5, 6]
+        ]
     config = {
-        'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-        'num_pieces': 16,
+        'sides': sides_list         ,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
+        'num_pieces': len(sides_list),
         'grid_size': 10,
         'DEBUG': True
         }

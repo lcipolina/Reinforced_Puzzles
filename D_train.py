@@ -8,10 +8,7 @@ import random
 import ray
 from ray import air, tune
 from ray.rllib.models import ModelCatalog
-
-#from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils.typing import ModelConfigDict, TensorType
-#from ray.rllib.utils.annotations import override
 from ray.rllib.utils.framework import try_import_torch
 torch, nn = try_import_torch()
 from sigterm_handler import signal_handler, return_state_file_path # Resume after SIGTERM termination
@@ -21,7 +18,7 @@ current_script_dir  = os.path.dirname(os.path.realpath(__file__)) # Get the curr
 parent_dir          = os.path.dirname(current_script_dir)         # Get the parent directory (one level up)
 sys.path.insert(0, parent_dir)                                    # Add parent directory to sys.path
 
-from B_env_naive import PuzzleGymEnv as Env                       # Custom environment
+from B_env_sides import PuzzleGymEnv as Env                       # Custom environment
 from C_policy import CustomMaskedModel as CustomTorchModel        # Custom model with masks
 
 from D_ppo_config import get_sarl_trainer_config                  # Tranier config for single agent PPO
@@ -164,4 +161,3 @@ class RunRay:
         torch.cuda.manual_seed_all(seed)  # Sets seeds of GPU RNG
         np.random.seed(seed=seed)         # Set seed for NumPy RNG
         random.seed(seed)                 # Set seed for Python's random RNG
-
