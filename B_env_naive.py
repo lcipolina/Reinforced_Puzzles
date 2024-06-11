@@ -303,8 +303,8 @@ class PuzzleEnvironment:
         # This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
         return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
-
-    def place_piece(self, current_piece_id, side_index, target_position):
+    # TODO: need to fix this with the correct side number
+    def place_piece_old(self, rotated_piece, side_index, target_position, target_side_idx):
         """
         Place a piece adjacent to the target piece based on the connecting side.
 
@@ -327,32 +327,80 @@ class PuzzleEnvironment:
         # 1 - Right: place the current piece to the right of the target piece.
         # 2 - Bottom: place the current piece below the target piece.
         # 3 - Left: place the current piece to the left of the target piece.
-        side_to_position = {
-            0: (-1, 0),  # Mapping side '0' (top) to move current piece above the target
-            1: (0, 1),   # Mapping side '1' (right) to move current piece to the right of the target
-            2: (1, 0),   # Mapping side '2' (bottom) to move current piece below the target
-            3: (0, -1)   # Mapping side '3' (left) to move current piece to the left of the target
+
+        connection_map = {
+                (0, 2): (-1, 0),  # Current top side connects to target bottom side
+                (1, 3): (0, 1),   # Current right side connects to target left side
+                (2, 0): (1, 0),   # Current bottom side connects to target top side
+                (3, 1): (0, -1)   # Current left side connects to target right side
+            }
+
+        # Calculate the new position based on the target piece's position and the connecting sides
+        if (side_index, target_side_idx) in connection_map:
+            row_offset, col_offset = connection_map[(side_index, target_side_idx)]
+            new_position = (target_position[0] + row_offset, target_position[1] + col_offset)
+
+            # Ensure the new position is within bounds and not already occupied
+            if (0 <= new_position[0] < self.grid_size) and (0 <= new_position[1] < self.grid_size):
+                if self.current_puzzle[new_position[0], new_position[1]] == -1:  # Check if the new position is empty
+                    self.current_puzzle[new_position[0], new_position[1]] = rotated_piece.id
+                    self.pieces_lst[rotated_piece.id] = rotated_piece  # Update the piece in the list with its new rotation
+                    return True
+                else:
+                    a = 0  #TODO: this is wrong!
+                 #   my_print(f"Position {new_position} is already occupied.", self.DEBUG)
+
+       # my_print(f"Invalid placement for piece {rotated_piece.id} at side {side_index} adjacent to target position {target_position}", self.DEBUG)
+        return False
+
+    def place_piece(self, rotated_piece, side_index, target_position, target_side_idx):
+        '''Place a piece adjacent to the target piece based on the connecting sides.'''
+        # Mapping of side indices to position offsets based on the connection logic
+        connection_map = {
+            (0, 0): (-1, 0),  # Current top side connects to target top side
+            (1, 1): (0, 1),   # Current right side connects to target right side
+            (2, 2): (1, 0),   # Current bottom side connects to target bottom side
+            (3, 3): (0, -1)   # Current left side connects to target left side
         }
 
-        if side_index in side_to_position:
-            row_offset, col_offset = side_to_position[side_index]
+        # Calculate the new position based on the target piece's position and the connecting sides
+        if (side_index, target_side_idx) in connection_map:
+            row_offset, col_offset = connection_map[(side_index, target_side_idx)]
             new_position = (target_position[0] + row_offset, target_position[1] + col_offset)
-            # Check if the new position is within the boundaries of the puzzle grid and is not already occupied
-            if (0 <= new_position[0] < self.grid_size) and (0 <= new_position[1] < self.grid_size) and (self.current_puzzle[new_position[0], new_position[1]] == -1):
-                self.current_puzzle[new_position[0], new_position[1]] = current_piece_id
-                return True
 
-        my_print(f"Invalid placement for piece {current_piece_id} at side {side_index} adjacent to target position {target_position}", self.DEBUG)
+            # Ensure the new position is within bounds and not already occupied
+            #TODO: change this
+            if (0 <= new_position[0] < self.grid_size) and (0 <= new_position[1] < self.grid_size):
+                if self.current_puzzle[new_position[0], new_position[1]] == -1:  # Check if the new position is empty
+                    self.current_puzzle[new_position[0], new_position[1]] = rotated_piece.id
+                    self.pieces_lst[rotated_piece.id] = rotated_piece  # Update the piece in the list with its new rotation
+                    return True
+                else:
+                    a = 0 #TODO: this is wrong!
+                    #my_print(f"Position {new_position} is already occupied.", self.DEBUG)
+
+        #my_print(f"Invalid placement for piece {rotated_piece.id} at side {side_index} adjacent to target position {target_position}", self.DEBUG)
         return False
+
 
 
     def update_current_puzzle(self, current_piece_id, target_piece_id, side_idx, target_side_idx):
-        target_position = np.argwhere(self.current_puzzle == target_piece_id) # Find the position of the target piece in the puzzle grid
+        '''Update the current puzzle grid by placing the current piece adjacent to the target piece based on the connecting side.'''
+        target_position = np.argwhere(self.current_puzzle == target_piece_id)  # Find the position of the target piece in the puzzle grid
         if target_position.size > 0:
-            target_position = tuple(target_position.flatten())  # Convert the position to a tuple
-            if self.place_piece(current_piece_id, side_idx, target_position):
-                return True
+            target_position = tuple(target_position[0])  # Convert the position to a tuple
+            for rotation in range(4):  # Try all 4 possible orientations
+                rotated_piece = self.pieces_lst[current_piece_id].copy()
+                rotated_piece.rotate(rotation * 90)  # Use existing rotate method
+                # Calculate the corresponding side index of the rotated piece
+                adjusted_side_idx = (side_idx + rotation) % 4
+                if rotated_piece.sides_lst[adjusted_side_idx] == self.pieces_lst[target_piece_id].sides_lst[target_side_idx]:
+                    if self.place_piece(rotated_piece, adjusted_side_idx, target_position, target_side_idx):
+                        return True
         return False
+
+
+
 
 
     def process_action(self, action):
@@ -364,7 +412,7 @@ class PuzzleEnvironment:
             Agent will then receive a reward based on whether the action was valid
             meaning that the pieces could be connected and the puzzle state was updated accordingly.
         '''
-
+        #TODO: the action returns the side_idx in (0-4) numbers, but the sides are labeled as 5,6,7,8
         current_piece_id, side_idx, combined_target_idx = action
 
         # Decode the combined_target_index to get target_piece_id and target_side_index

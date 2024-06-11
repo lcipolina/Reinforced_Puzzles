@@ -109,7 +109,7 @@ class Inference:
             my_print(f"Reward: {reward}, Done: {terminated}",DEBUG=True)
             episode_reward += reward
 
-            self.env.render()          # Convert current puzzle into string for visualization
+           # self.env.render()          # Convert current puzzle into string for visualization
 
             if terminated:
                 my_print("The puzzle has been solved or the episode is over!", DEBUG = True)
