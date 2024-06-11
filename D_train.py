@@ -42,8 +42,6 @@ class RunRay:
     def __init__(self, setup_dict,custom_env_config):
         current_dir            = os.path.dirname(os.path.realpath(__file__))
         self.jason_path        = os.path.join(current_dir, 'results', 'best_checkpoint_'+TIMESTAMP+'.json')
-        self.clear_json(self.jason_path)
-
         self.setup_dict        = setup_dict
         self.custom_env_config = custom_env_config
         self.experiment_name   = setup_dict.get('experiment_name', 'puzzle')
@@ -167,6 +165,3 @@ class RunRay:
         np.random.seed(seed=seed)         # Set seed for NumPy RNG
         random.seed(seed)                 # Set seed for Python's random RNG
 
-
-    def clear_json(self,jason_path):
-        with open(jason_path, "w") as f: pass # delete whatever was on the json file
