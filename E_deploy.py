@@ -88,7 +88,7 @@ class Inference:
         )
 
         # Need to bring the config dict exactly as it was when training (otherwise won't work)
-        self.setup_dict['cpu_nodes'] = 7  # Modify the configuration for your multi-agent setup and 7 CPU cores
+        self.setup_dict['cpu_nodes'] = 1  # Modify the configuration for your multi-agent setup and 1 CPU cores
         modified_config  = get_sarl_trainer_config(Env, self.custom_env_config, self.setup_dict)
         state["config"]  = modified_config.to_dict()     # Inject the modified configuration into the state
         algo = Algorithm.from_state(state)              # Load the algorithm from the modified state
@@ -105,8 +105,6 @@ class Inference:
 
             # Compute SARL action (with default value for policy)
             action = algo.compute_single_action(observation=obs, explore=False, policy_id="default_policy") # Pre-process and Flattens the obs inside
-            piece_id, target_id, target_side_idx = action
-            my_print(f"Action: (active_piece: {piece_id}, target_piece: {target_id}, target_side: {target_side_idx})",DEBUG=True)
             obs, reward, terminated, _, _ = self.env.step(action)
             my_print(f"Reward: {reward}, Done: {terminated}",DEBUG=True)
             episode_reward += reward

@@ -114,7 +114,7 @@ class PuzzleEnvironment:
 
         # Define the puzzle grid dimensions (2x2 for 4 pieces)
         # Current puzzle is an array (then converted to graph for comparisons), target puzzle is a graph
-        self.current_puzzle = np.full((self.grid_size, self.grid_size), -1, dtype=np.int8)              # 2x2 grid for a 4-piece puzzle , "-1"represents an empty cell in the puzzle grid
+        self.current_puzzle = np.full((self.grid_size, self.grid_size), -1, dtype=np.int8)              # (grid_size)x(grid_size) grid for a N-piece puzzle , "-1"represents an empty cell in the puzzle grid
         self.available_pieces_sides = np.full((self.num_pieces, self.num_sides + 1), 1, dtype=np.int8)  # Availability of pieces and sides.  "1" represents available - where each row represents a piece, and the last element in each row indicates the availability of the piece.
         self.available_connections  = np.full((self.num_pieces * self.num_sides,), 1, dtype=np.int8)    # "1" represents available  of connections as a flat array, where each element corresponds to a specific connection.
 
@@ -123,7 +123,8 @@ class PuzzleEnvironment:
         self.reset()
 
     def convert_array_to_graph(self):
-        '''Used to compare against two graphs to check if they are isomorphic. This method converts the current puzzle array to a graph.'''
+        '''Used to compare against two graphs to check if they are isomorphic. For the reward.
+        This method converts the current puzzle array to a graph.'''
         graph = nx.Graph()
         for idx, row in enumerate(self.current_puzzle):
             for jdx, piece_id in enumerate(row):
@@ -289,10 +290,10 @@ class PuzzleEnvironment:
 
         observation = {
             "current_puzzle":         self.current_puzzle,                # Current state of the puzzle grid, -1 means empty
-            "available_pieces_sides": self.available_pieces_sides,            # List of available pieces and their sides, -1 means unavailable, 1 means available
-            "available_connections":  self.available_connections,  # List of available connections between pieces, -1 means unavailable
-            "mask_piece_id":          mask_piece_id,                       # Mask for selecting the active piece (Desideratum 2) - Only available pieces can be selected as current piece
-            "mask_target_side_index": mask_target_side_index      # Mask for selecting the target piece and the side (Desideratum 4 and 5)
+            "available_pieces_sides": self.available_pieces_sides,        # List of available pieces and their sides, -1 means unavailable, 1 means available
+            "available_connections":  self.available_connections,         # List of available connections between pieces, -1 means unavailable
+            "mask_piece_id":          mask_piece_id,                      # Mask for selecting the active piece (Desideratum 2) - Only available pieces can be selected as current piece
+            "mask_target_side_index": mask_target_side_index              # Mask for selecting the target piece and the side (Desideratum 4 and 5)
         }
 
         return observation
@@ -303,7 +304,6 @@ class PuzzleEnvironment:
         return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
 
-    #TODO: recheck this method
     def place_piece(self, current_piece_id, side_index, target_position):
         """
         Place a piece adjacent to the target piece based on the connecting side.
@@ -334,21 +334,24 @@ class PuzzleEnvironment:
             3: (0, -1)   # Mapping side '3' (left) to move current piece to the left of the target
         }
 
-        # Validate that the side_index provided is one that we have mapped to a position.
         if side_index in side_to_position:
-            # Extract the row and column offset based on the side index.
             row_offset, col_offset = side_to_position[side_index]
-            # Calculate the new position for the current piece based on the target's position and the offsets.
-            new_position = (target_position[0][0] + row_offset, target_position[1][0] + col_offset)
-
-            # Check if the new position is within the grid bounds and the specified cell is empty (not occupied).
+            new_position = (target_position[0] + row_offset, target_position[1] + col_offset)
+            # Check if the new position is within the boundaries of the puzzle grid and is not already occupied
             if (0 <= new_position[0] < self.grid_size) and (0 <= new_position[1] < self.grid_size) and (self.current_puzzle[new_position[0], new_position[1]] == -1):
-                # If the position is valid and empty, place the current piece at this new position on the grid.
-                self.current_puzzle[new_position] = current_piece_id
-                return True  # Indicate successful placement.
+                self.current_puzzle[new_position[0], new_position[1]] = current_piece_id
+                return True
 
-        # If the side index was not valid, or the position was out of bounds or occupied, return False.
-        my_print(f"Invalid placement for piece {current_piece_id} at side {side_index} adjacent to target position {target_position}",self.DEBUG)
+        my_print(f"Invalid placement for piece {current_piece_id} at side {side_index} adjacent to target position {target_position}", self.DEBUG)
+        return False
+
+
+    def update_current_puzzle(self, current_piece_id, target_piece_id, side_idx, target_side_idx):
+        target_position = np.argwhere(self.current_puzzle == target_piece_id) # Find the position of the target piece in the puzzle grid
+        if target_position.size > 0:
+            target_position = tuple(target_position.flatten())  # Convert the position to a tuple
+            if self.place_piece(current_piece_id, side_idx, target_position):
+                return True
         return False
 
 
@@ -384,8 +387,8 @@ class PuzzleEnvironment:
                 # Check if the selected sides on the active and target pieces can legally connect
                 if self.sides_match(self.pieces_lst[current_piece_id], side_idx, self.pieces_lst[target_piece_id], target_side_idx):
                         # If placement is successful, update the active piece and target_piece, sides and connections as no longer available
+                        self.update_current_puzzle(current_piece_id, target_piece_id, side_idx, target_side_idx) # Update self.current_puzzle
                         self.update_pieces_sides(current_piece_id,target_piece_id, side_idx, target_side_idx)
-
                         my_print(f"Connected piece {current_piece_id} side {side_idx} to piece {target_piece_id} side {target_side_idx}",self.DEBUG)
 
                         return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
@@ -415,10 +418,11 @@ class PuzzleEnvironment:
 
         # Need to start with a placed piece, otherwise there is no available target piece and the action mask fails
         start_piece_id = piece_ids[0]                         # Start with the first piece in the list
-        self.current_puzzle[0, 0] = start_piece_id            # Place the first piece in the top-left corner
+        middle_position = (self.grid_size // 2, self.grid_size // 2)  # Place the first piece in the middle of the grid
+        self.current_puzzle[middle_position] = start_piece_id
         self.update_pieces_sides(start_piece_id)              # Mark the starting piece as unavailable (it's already placed)
 
-        my_print(f"Starting piece: {start_piece_id} placed in puzzle grid",self.DEBUG)
+        my_print(f"Starting piece: {start_piece_id} placed in puzzle grid at {middle_position}", self.DEBUG)
 
         return self._get_observation(), {}
 
@@ -516,7 +520,7 @@ class PuzzleGymEnv(gym.Env):
 
         # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
         self.observation_space = Dict({
-                    'current_puzzle'         : Box(low=-1, high=1, shape=(self.env.grid_size, self.env.grid_size)),         # 2x2 grid for a 4-piece puzzle
+                    'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),         # 2x2 grid for a 4-piece puzzle
                     'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides
                     'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8), # Availability of connections
                     'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                              # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece

@@ -39,7 +39,8 @@ class Runner:
             if checkpoint_path is None:
                checkpoint_path = get_checkpoint_from_json_file(directory = os.path.join(CURRENT_DIR, 'results'), name_prefix = 'best_checkpoint', extension = '.json') # Get the latest checkpoint file in the directory by time stamp
 
-            num_eps_to_play = 2
+            num_eps_to_play = 1
+            self.custom_env_config["DEBUG"] = True # Print env at play
             eval_cls = Inference(checkpoint_path, self.custom_env_config, self.setup_dict, num_eps = num_eps_to_play).play_env()             # Initialize the Inference class with the checkpoint path and custom environment configuration
             #eval_cls.run_inference_and_generate_plots(distance_lst_input=test_distance_lst, max_coalitions=max_coalitions_to_plot) # Run inference on the env and generate coalition plots and 'response_data'
 
@@ -62,20 +63,20 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     #if setup_dict is None or env_config_dict is None:  #TODO: uncomment this!
     env_config_dict = {
                     'sides': [5, 6, 7, 8],  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                    'num_pieces': 16,
+                    'num_pieces': 6,
                     'grid_size': 10,        # 10x10 grid
                     "DEBUG": False,         # Whether to print debug info
                     }
 
-    setup_dict = { 'training_iterations': 2,
+    setup_dict = { 'training_iterations': 50,
                     'train_batch_size': 600,
                     'seeds_lst': [42],
-                    'cpu_nodes': slurm_config.get('num_cpus', 7),
+                    'cpu_nodes': slurm_config.get('num_cpus', 19),
                     'experiment_name': 'puzzle',
                     }
 
     # TRAIN n EVAL
-    train_n_eval = True
+    train_n_eval = False
 
     # EVAL
    # train_n_eval = False # inference only
@@ -88,7 +89,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     runner = Runner(setup_dict, env_config_dict)
 
     if train_n_eval:
-        # TRAIN 
+        # TRAIN
         checkpoint_path_trained = runner.train(train_path = train_path, test_path =test_path)
 
         # EVALUATE
@@ -148,3 +149,5 @@ if __name__ == '__main__':
                    train_path = train_path,
                    test_path  = test_path,
                     checkpoint_path_trained =checkpoint_path_trained )
+
+        print("DONE!")
