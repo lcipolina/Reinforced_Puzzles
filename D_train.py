@@ -18,7 +18,7 @@ current_script_dir  = os.path.dirname(os.path.realpath(__file__)) # Get the curr
 parent_dir          = os.path.dirname(current_script_dir)         # Get the parent directory (one level up)
 sys.path.insert(0, parent_dir)                                    # Add parent directory to sys.path
 
-from B_env_sides import PuzzleGymEnv as Env                       # Custom environment
+from B_env_naive import PuzzleGymEnv as Env                       # Custom environment
 from C_policy import CustomMaskedModel as CustomTorchModel        # Custom model with masks
 
 from D_ppo_config import get_sarl_trainer_config                  # Tranier config for single agent PPO
