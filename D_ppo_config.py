@@ -24,8 +24,7 @@ def get_sarl_trainer_config(env_class,
 
     trainer_config = (PPOConfig()
                             .environment(env=env_class,
-                                    env_config= custom_env_config,
-                                    )
+                                         env_config= custom_env_config)
                             .training(train_batch_size=_train_batch_size,  # Number of samples that are collected before a gradient step is taken.
                                     sgd_minibatch_size=64,  # These are the number of samples that are used for each SGD iteration.
                                 # entropy_coeff=0.2,  #it doesnt seem to change much
@@ -46,3 +45,14 @@ def get_sarl_trainer_config(env_class,
 
 
     return trainer_config
+
+
+    # def get_marl_hrl_trainer_config(env_class,
+    #                         custom_env_config,
+    #                         setup_dict,
+    #                         lr_start = None,
+    #                         lr_time = None,
+    #                         lr_end = None
+    #                        ):
+    #     a = 0
+    #     return  0

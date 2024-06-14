@@ -1,7 +1,7 @@
 ''' Only works on Ray 2.7 or later as they had a bug on the MultiDiscrete '''
 
 
-
+#TODO: Estaba en que tengo que separar los action y observation spaces en nested dicts
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches  #create shapes
@@ -82,11 +82,87 @@ class PuzzleEnvironment:
         self.reset()
 
 
+    #TODO: ver esto
+    def _setup_target_puzzle(self):
+        '''Defines target puzzle configuration by building a graph where nodes are pieces, and edges represent connections between pieces.
+        The target puzzle is a 2x2 grid with 4 pieces, and each piece has 4 sides. The pieces are connected based on their positions in the grid.
+
+        I believe it is doing something like this but I am not sure:
+
+         # Add edges based on the matching side numbers; the order is crucial here
+        # Assuming the ids of the pieces are 0, 1, 2, 3 and they are arranged as follows:
+        # 0 1
+        # 2 3
+        # Syntax: Graph.add_edge(node1, node2, attribute_name=value)
+
+        '''
+        # Add nodes to the target graph using the pieces with zero-based IDs
+        for piece in self.pieces_lst:
+            self.target_puzzle.add_node(piece.id, piece=piece.copy())
+
+        # Helper function to determine side index
+        def get_side_index(piece_pos, neighbor_pos):
+            """Return the side index that connects to the given neighbor."""
+            if piece_pos[0] == neighbor_pos[0]:  # Same row
+                if piece_pos[1] < neighbor_pos[1]:
+                    return 1  # Right side
+                else:
+                    return 3  # Left side
+            else:  # Same column
+                if piece_pos[0] < neighbor_pos[0]:
+                    return 2  # Bottom side
+                else:
+                    return 0  # Top side
+
+        # Arrange pieces in a grid and connect them
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                piece_id = i * self.grid_size + j
+                if j < self.grid_size - 1:  # Connect to the right piece
+                    right_piece_id = piece_id + 1
+                    self.target_puzzle.add_edge(
+                        piece_id, right_piece_id,
+                        side_match=(get_side_index((i, j), (i, j + 1)), get_side_index((i, j + 1), (i, j)))
+                    )
+                if i < self.grid_size - 1:  # Connect to the bottom piece
+                    bottom_piece_id = piece_id + self.grid_size
+                    self.target_puzzle.add_edge(
+                        piece_id, bottom_piece_id,
+                        side_match=(get_side_index((i, j), (i + 1, j)), get_side_index((i + 1, j), (i, j)))
+                    )
+
+    def update_pieces_sides(self,current_piece_id = None, target_piece_id = None, side_idx = None, target_side_idx = None):
+        """ Used when a piece is placed to mark a piece and connected sides as unavailable (meaning it's placed).
+        """
+        # Start of the game - No current_pice provided - Reset the available pieces and sides
+        if current_piece_id is None:
+            for i, piece in enumerate(self.pieces_lst):
+                self.available_pieces_sides[i, :-1] = np.array(piece.sides_lst)  # Optionally set specific side values if needed
+            self.available_pieces_sides[:, -1] = 1                               # Set the last column to all pieces available (1)
+
+        # Placement of a piece has happened - Update the available pieces and sides
+        else:  # current_piece provided - Mark as unavailable (-1) (placed) - last column of the array
+            self.available_pieces_sides[current_piece_id, -1] = -1
+
+            # Connection between pieces' sides - Mark the sides as unavailable
+            if side_idx and target_side_idx is not None:  # Sides involved in a connection are no longer available
+                self.pieces_lst[current_piece_id].connect_side(side_idx)
+                self.pieces_lst[target_piece_id].connect_side(target_side_idx)
+
+            # Connections array updated
+            if target_piece_id is not None:
+                # Since we are connecting 2 pieces, we need to update the available connections for both pieces - meaning that the sides that were connected are no longer available.
+                self.update_available_connections_n_sides(current_piece_id, side_idx)         # Update the available connections and sides based on the newly connected piece's side
+                self.update_available_connections_n_sides(target_piece_id, target_side_idx)   # Update the available connections and sides for the target piece as well
+
+
+
+
     def _get_observation(self, agent_id):
         '''Get the current observation of the environment.'''
 
-        #TODO: think about the mask
-        mask_piece_id, mask_target_side_index = self._get_action_mask()  # Mask for: Valid active pieces, target pieces, and the target pieces' sides.
+        #TODO: think about the mask - #TODO: check if the mask is correct
+        mask_piece_id, mask_target_side_index = 1, 1 #self._get_action_mask()  # Mask for: Valid active pieces, target pieces, and the target pieces' sides.
 
         if agent_id == "high_level_agent":
             observation = {
@@ -107,21 +183,24 @@ class PuzzleEnvironment:
 
 
     def _high_level_step(self, action):
-
         self.selected_target_piece, self.selected_target_side = action
-
         obs = {"low_level_agent": self._get_observation("low_level_agent")}         # Obs for the next agent
         rew = {"high_level_agent": 0}                                               #TODO: this might need to be enhanced later
         done = truncated = {"__all__": False}        #TODO: check if this is OK
-
         my_print(f"Target piece {self.selected_target_piece} and side:{self.selected_target_side}, Reward:{rew}", self.DEBUG)
-
         return obs, rew, done, truncated, {}
 
 
     def _low_level_step(self, action):
-
+        '''Low-level agent connects the active piece to the target piece and side.'''
+        obs, rew = {}, {}
         self.selected_active_piece, self.selected_active_side = action
+        obs = {"high_level_agent": self._get_observation("high_level_agent")}         # Obs for the next agent
+        rew["high_level_agent"] = 1  #TEST to see if I can assign reward to agent without observation
+        rew["low_level_agent"] = 1
+        done = truncated = {"__all__": False}        #TODO: check if this is OK
+        my_print(f"Active piece {self.selected_active_piece} and side:{self.selected_active_side}, Reward:{rew}", self.DEBUG)
+        return obs, rew, done, truncated, {}
 
 
 
@@ -165,7 +244,9 @@ class PuzzleEnvironment:
         if "high_level_agent" in action_dict:
             return self._high_level_step(action_dict["high_level_agent"])
         else:
-            return self._low_level_step(action_dict["low_level_agent"])  #list(action_dict.values())[0]
+            a = self._low_level_step(action_dict["low_level_agent"])  #list(action_dict.values())[0]
+            return self._high_level_step(action_dict["high_level_agent"])
+
 
 
 
@@ -189,10 +270,12 @@ class PuzzleGymEnv(MultiAgentEnv):
         self.action_space = MultiDiscrete([
             self.env.num_pieces,                       # active_piece_id
             self.env.num_sides,                        # active_piece_side_index. The INDEX of the side, not the actual value.
-            self.env.num_pieces * self.env.num_sides   # combined dimension for target_piece_id and side_target_piece_index
+           # self.env.num_pieces * self.env.num_sides   # combined dimension for target_piece_id and side_target_piece_index
         ])
 
         # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
+
+
         self.observation_space = Dict({
                     'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),         # 2x2 grid for a 4-piece puzzle
                     'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
@@ -240,8 +323,8 @@ if __name__ == "__main__":
 
     for _ in range(num_steps):
         action = env.action_space.sample()       # action is to connect available pieces and sides with the target side
-        piece_id, target_id, target_side_idx = action
-        print(f"Action: (active_piece: {piece_id}, target_piece: {target_id}, target_side: {target_side_idx})")
+        piece_id, target_id,  = action
+        print(f"Action: (active_piece: {piece_id}, target_piece: {target_id})")
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 

@@ -50,7 +50,7 @@ class HierarchicalWindyMazeEnv(MultiAgentEnv):
         # step since agent ids cannot be reused.
         # This is used to track the low level agent's state. And we need this because the low level agent's state is not reset when the high level agent changes.
         # Meaning the low level agent's state is persistent across high level agent steps.
-    
+
         self.low_level_agent_id = "low_level_{}".format(self.num_high_level_steps)
         return {
             "high_level_agent": self.cur_obs,
@@ -118,8 +118,8 @@ class HierarchicalWindyMazeEnv(MultiAgentEnv):
 
 if __name__ == "__main__":
 
-    #******************************************************************************
-    # Part 1: Train RLlib Hierarchical Windy Maze Environment
+    # ******************************************************************************
+    # Train RLlib Hierarchical Windy Maze Environment
     # *****************************************************************************
     # Default values
     use_flat = False
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     ray.init(local_mode=local_mode)
 
     stop = {
-        'training_iteration': 3,
+        'training_iteration': 6,
         #'episodes_timesteps_total': stop_timesteps,
        # stop_reward: stop_reward,
     }
@@ -172,7 +172,7 @@ if __name__ == "__main__":
                         Discrete(4),
                         PPOConfig.overrides(gamma=0.9),
                     ),
-                    "low_level_policy": (
+                    "low_level_policy": ( # Use the same policy for all low-level agents.
                         None,
                         Tuple([maze.observation_space, Discrete(4)]),
                         maze.action_space,
