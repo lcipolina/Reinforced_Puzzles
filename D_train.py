@@ -64,7 +64,7 @@ class RunRay:
                             lr_start, lr_time, lr_end )
 
         #_____________________________________________________________________________________________
-        # Setup Trainer
+        # Setup Trainer with SLURM signal handler
         #_____________________________________________________________________________________________
 
         # SLURM signal handler - Decide whether to start a new experiment or restore an existing one
@@ -110,7 +110,9 @@ class RunRay:
 
         return best_result_grid
 
-
+    #____________________________________________________________________________________________
+    #  Train the model
+    #____________________________________________________________________________________________
     def train(self):
         ''' Calls Ray to train the model  '''
         if ray.is_initialized(): ray.shutdown()
