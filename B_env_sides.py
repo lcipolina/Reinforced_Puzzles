@@ -1,4 +1,4 @@
-''' Only works on Ray 2.7 and after as they had a bug on the MultiDiscrete
+''' Only works on Ray 2.7 and after and after as they had a bug on the MultiDiscrete
 
 -TODO: FOR ME, THIS CODE IS NOT WORKING VERY WELL, BECAUSE OF THIS LINE:
 Pieces have different sides numbers, and the agent must connect the pieces based on the matching sides.
@@ -118,7 +118,7 @@ class PuzzleEnvironment:
         self.grid_size      = config.get("grid_size", 10)                                                  # height and width # int(np.sqrt(self.num_pieces))  # Generates 4 pieces with 4 sides
         self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides)     # Generate pieces, sides and availability
 
-        # Define the puzzle grid dimensions (2x2 for 4 pieces)
+        # Define the puzzle grid dimensions (Ex: 2x2 for 4 pieces)
         # Current puzzle is an array (then converted to graph for comparisons), target puzzle is a graph
         self.current_puzzle = np.full((self.grid_size, self.grid_size), -1, dtype=np.int8)              # (grid_size)x(grid_size) grid for a N-piece puzzle , "-1"represents an empty cell in the puzzle grid
         self.available_pieces_sides = np.full((self.num_pieces, self.num_sides + 1), 1, dtype=np.int8)  # Availability of pieces and sides.  "1" represents available - where each row represents a piece, and the last element in each row indicates the availability of the piece.
@@ -244,6 +244,9 @@ class PuzzleEnvironment:
 
     def _get_action_mask(self):
         """Returns separate masks for each dimension in the MultiDiscrete action space.
+
+           Mask for: Valid active pieces, target pieces, and the target pieces' sides.
+
            Masking is to ensure that the policy only selects valid actions at each step.
            Basically is a way to narrow down the combinatorial explosion of possible actions. Policy should coverge faster.
 
@@ -430,7 +433,9 @@ class PuzzleEnvironment:
 
 
     def step(self, action):
+        
         valid_action = self.process_action(action)     # Check validity and update connections if valid action
+
         if valid_action:
             reward = self.calculate_reward()
             terminated = self.check_completion()

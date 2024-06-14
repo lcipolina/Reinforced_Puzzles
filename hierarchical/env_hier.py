@@ -48,6 +48,9 @@ class HierarchicalWindyMazeEnv(MultiAgentEnv):
         self.num_high_level_steps = 0
         # current low level agent id. This must be unique for each high level
         # step since agent ids cannot be reused.
+        # This is used to track the low level agent's state. And we need this because the low level agent's state is not reset when the high level agent changes.
+        # Meaning the low level agent's state is persistent across high level agent steps.
+    
         self.low_level_agent_id = "low_level_{}".format(self.num_high_level_steps)
         return {
             "high_level_agent": self.cur_obs,
