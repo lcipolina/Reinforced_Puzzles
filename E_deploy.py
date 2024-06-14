@@ -15,7 +15,7 @@ from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.utils.checkpoints import get_checkpoint_info
 
 from Z_utils import my_print
-from B_env_naive import PuzzleGymEnv as Env                       # custom environment
+from B_env_sides import PuzzleGymEnv as Env                       # custom environment
 from C_policy import CustomMaskedModel as CustomTorchModel        # Custom model with masks
 from D_ppo_config import get_sarl_trainer_config                  # Configuration for the training
 

@@ -1,6 +1,12 @@
 ''' Only works on Ray 2.7 and after as they had a bug on the MultiDiscrete
 
+-TODO: FOR ME, THIS CODE IS NOT WORKING VERY WELL, BECAUSE OF THIS LINE:
+Pieces have different sides numbers, and the agent must connect the pieces based on the matching sides.
+And the RL sees the sides number, but then the pieces are connected based on the sides values.
 
+HERE:
+target_piece_id = combined_target_idx // self.num_sides  # Calculate target piece ID
+target_side_idx = combined_target_idx % self.num_sides   # Calculate side index of the target piece
 
 - TODO: Add visualization
 

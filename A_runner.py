@@ -1,5 +1,8 @@
 '''Run Ray Tune with Custom Model and Action Masking'''
 
+# python hierarchical_training.py > rllib_output.log 2>&1
+
+
 import os, sys
 
 os.environ['PYTHONWARNINGS'] = 'ignore::DeprecationWarning'
@@ -61,18 +64,18 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     #test_path  = '/p/home/jusers/cipolina-kun1/juwels/coalitions/dist_testing_jan31.txt'
 
     #if setup_dict is None or env_config_dict is None:  #TODO: uncomment this!
-   # sides_list = [
-   # [5, 6, 7, 8],
-   # [7, 8, 5, 6],
-   # [5, 6, 7, 8],
-   # [7, 8, 5, 6]
-   # ]
-    sides_list = [5,6,7,8]
+    sides_list = [
+    [5, 6, 7, 8],
+    [7, 8, 5, 6],
+    [5, 6, 7, 8],
+    [7, 8, 5, 6]
+    ]
+
     env_config_dict = {
                     'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                    'num_pieces': 4, #len(sides_list),
+                    'num_pieces': len(sides_list),
                     'grid_size': 10,        # 10x10 grid (100 pieces in total)
-                    "DEBUG": False,         # Whether to print debug info
+                    "DEBUG": True,         # Whether to print debug info
                     }
 
     setup_dict = { 'training_iterations': 70,
