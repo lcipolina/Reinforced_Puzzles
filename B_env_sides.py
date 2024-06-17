@@ -308,8 +308,8 @@ class PuzzleEnvironment:
         return observation
 
     def sides_match(self, piece, side_index, target_piece, target_side_index):
-        # Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.
-        # This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
+        ''' Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.'''
+        # TODO: This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
         return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
     # TODO: need to fix this with the correct side number
@@ -433,7 +433,7 @@ class PuzzleEnvironment:
 
 
     def step(self, action):
-        
+
         valid_action = self.process_action(action)     # Check validity and update connections if valid action
 
         if valid_action:

@@ -1,15 +1,12 @@
 ''' Only works on Ray 2.7 or later as they had a bug on the MultiDiscrete '''
 
-
-#TODO: Estaba en que tengo que separar los action y observation spaces en nested dicts
-
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches  #create shapes
 import networkx as nx
 import random
 import numpy as np
 import gymnasium as gym
-from gymnasium.spaces import Box, MultiDiscrete, Dict
+from gymnasium.spaces import Box, MultiDiscrete, Dict, Discrete
 from ray.rllib.env import MultiAgentEnv
 
 
@@ -155,58 +152,158 @@ class PuzzleEnvironment:
                 self.update_available_connections_n_sides(current_piece_id, side_idx)         # Update the available connections and sides based on the newly connected piece's side
                 self.update_available_connections_n_sides(target_piece_id, target_side_idx)   # Update the available connections and sides for the target piece as well
 
-
-
-
     def _get_observation(self, agent_id):
         '''Get the current observation of the environment.'''
 
         #TODO: think about the mask - #TODO: check if the mask is correct
         mask_piece_id, mask_target_side_index = 1, 1 #self._get_action_mask()  # Mask for: Valid active pieces, target pieces, and the target pieces' sides.
 
-        if agent_id == "high_level_agent":
+        if agent_id == "high_level_agent":  # Selects the target piece and side
             observation = {
                 "current_puzzle":         self.current_puzzle,                # Current state of the puzzle grid, -1 means empty
+                "available_pieces_sides": self.available_pieces_sides,        # List of available pieces and their sides, -1 means unavailable, 1 means available
                 "available_connections":  self.available_connections,         # List of available connections between pieces, -1 means unavailable
                 "mask_target_side_index": mask_target_side_index              # Mask for selecting the target piece and the side (Desideratum 4 and 5)
             }
-        else:  # Obs for the low_level_agent
+        else:  # Obs for the low_level_agent - Selects the active piece and side
             observation = {
                 "current_puzzle":         self.current_puzzle,                # Current state of the puzzle grid, -1 means empty
                 "available_pieces_sides": self.available_pieces_sides,        # List of available pieces and their sides, -1 means unavailable, 1 means available
                 "available_connections":  self.available_connections,         # List of available connections between pieces, -1 means unavailable
                 "mask_piece_id":          mask_piece_id,                      # Mask for selecting the active piece (Desideratum 2) - Only available pieces can be selected as current piece
-                "selected_target_piece":  self.selected_target_piece,         # The target piece selected by the high-level agent
-                "selected_target_side":   self.selected_target_side           # The side of the target piece selected by the high-level agent
+                "selected_target_piece":  self.target_piece,         # The target piece selected by the high-level agent
+                "selected_target_side":   self.target_side           # The side of the target piece selected by the high-level agent
             }
         return observation
 
+    def check_completion(self):
+        ''' Completion if no more available pieces'''
+        if np.all(self.available_pieces_sides[:, -1] == -1):  # Check if all pieces are unavailable
+            return True
 
+        # TODO: ver esto
+        '''
+        """Check if the current puzzle is a complete match with the target puzzle."""
+        current_graph = self.convert_array_to_graph()  # Convert the current puzzle grid to a graph for comparison
+        return nx.is_isomorphic(current_graph, self.target_puzzle)  # Compare current graph structure with target graph
+        '''
+
+    def convert_array_to_graph(self):
+        '''Used to compare against two graphs to check if they are isomorphic. For the reward.
+        This method converts the current puzzle array to a graph.'''
+        graph = nx.Graph()
+        for idx, row in enumerate(self.current_puzzle):
+            for jdx, piece_id in enumerate(row):
+                if piece_id != -1:
+                    graph.add_node(piece_id, pos=(idx, jdx))
+                    # Add edges for adjacent pieces if they exist
+                    if idx > 0 and self.current_puzzle[idx-1, jdx] != -1:
+                        graph.add_edge(piece_id, self.current_puzzle[idx-1, jdx])
+                    if jdx > 0 and self.current_puzzle[idx, jdx-1] != -1:
+                        graph.add_edge(piece_id, self.current_puzzle[idx, jdx-1])
+        return graph
+
+    def process_action(self, action):
+        '''Process the action for the Low-level agent. Connect the chosen active piece to the target piece and side.
+            Checks if the action is valid  - if the two pieces can be connected based on the puzzle's rules.
+            If valid action: method returns True  - and the step method assigns rewards. If invalid action: method returns False.
+            If valid action: updates the puzzle state, the side availability and the available connections.
+            Update the available connections based on the newly connected piece's side and remove the active piece from the list of available pieces.
+            Agent will then receive a reward based on whether the action was valid - meaning that the pieces could be connected and the puzzle state was updated accordingly.
+        '''
+        #OBS: the action returns the side_idx in (0-4) numbers, but the sides are labeled as 5,6,7,8
+        current_piece_id, side_idx = action
+
+        my_print(f"Processing action: Connect selected piece {current_piece_id} at side {side_idx} to target piece {self.target_piece} at side {self.target_side}",self.DEBUG)
+
+        # Check if the selected current piece is still available to be played (i.e., not already placed)
+        if self.available_pieces_sides[current_piece_id, -1] == -1:
+            my_print("Selected current piece is not available.",self.DEBUG)
+            return False
+
+        # Check if the current piece is available and not already placed
+        if self.available_pieces_sides[current_piece_id, -1] == 1:
+            # Check if the target piece is already placed in the puzzle and has at least one available side to connect
+            if self.available_pieces_sides[self.target_piece, -1] == -1 and self.available_pieces_sides[self.target_piece, self.target_side] != -1:
+                # Check if the selected sides on the active and target pieces can legally connect
+                if self.sides_match(self.pieces_lst[current_piece_id], side_idx, self.pieces_lst[target_piece_id], target_side_idx):
+                        # If placement is successful, update the active piece and target_piece, sides and connections as no longer available
+                        self.update_current_puzzle(current_piece_id, target_piece_id, side_idx, target_side_idx) # Update self.current_puzzle
+                        self.update_pieces_sides(current_piece_id,target_piece_id, side_idx, target_side_idx)
+                        my_print(f"Connected piece {current_piece_id} side {side_idx} to piece {target_piece_id} side {target_side_idx}",self.DEBUG)
+
+                        return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
+                else:
+                        my_print(f"Sides unmatched for piece {current_piece_id} side {side_idx} and piece {target_piece_id} side {target_side_idx}",self.DEBUG)
+            else:
+                    my_print(f"Cannot connect piece {current_piece_id} to (renumerated) side {side_idx} with piece's {target_piece_id}  (renumerated) side {target_side_idx}",self.DEBUG)
+        else:
+                my_print(f"Target piece {target_piece_id} or side {target_side_idx} not available.", self.DEBUG)
+
+        return False                                                                            # Return False if any condition fails and the pieces cannot be connected as intended
+
+    #------------------------------------------------------------------------------------------------
+    # Reward mechanism
+    #------------------------------------------------------------------------------------------------
+    def calculate_reward(self):
+        incremental_reward = 1  # Base reward for valid placement
+        config_reward = self.overall_configuration_reward()
+        completion_reward = self.completion_bonus()  # Calculate completion bonus based on the puzzle state
+        return incremental_reward + config_reward + completion_reward
+
+    def completion_bonus(self):
+        # Calculate completion bonus based on whether the puzzle is completely solved
+        if self.check_completion():
+            return 20  # Significant bonus for completing the puzzle
+        return 0
+
+    def overall_configuration_reward(self):
+        # Convert the current puzzle array to a graph
+        current_graph = self.convert_array_to_graph()
+        # Reward based on the number of correctly connected edges, scaled to enhance impact
+        correct_connections = sum(1 for u, v in current_graph.edges() if self.target_puzzle.has_edge(u, v))
+        total_possible_connections = self.target_puzzle.number_of_edges()
+        if total_possible_connections > 0:
+            # Scale the reward to make it more significant
+            return (correct_connections / total_possible_connections) * 10
+        return 0
+
+    #------------------------------------------------------------------------------------------------
+    # High-level and low-level step
+    #------------------------------------------------------------------------------------------------
     def _high_level_step(self, action):
-        self.selected_target_piece, self.selected_target_side = action
-        obs = {"low_level_agent": self._get_observation("low_level_agent")}         # Obs for the next agent
-        rew = {"high_level_agent": 0}                                               #TODO: this might need to be enhanced later
-        done = truncated = {"__all__": False}        #TODO: check if this is OK
-        my_print(f"Target piece {self.selected_target_piece} and side:{self.selected_target_side}, Reward:{rew}", self.DEBUG)
-        return obs, rew, done, truncated, {}
+        target_piece_n_side = action
+        # Decode the combined_target_index to get target_piece_id and target_side_index
+        # Sides are renumerated from their original lables to 1, 2, ... TODO: think if this is correct
+        self.target_piece = target_piece_n_side // self.num_sides  # Calculate target piece ID
+        self.target_side  = target_piece_n_side % self.num_sides   # Calculate side index of the target piece
 
+        obs = {"low_level_agent": self._get_observation("low_level_agent")}         # Obs for the next agent
+        rew = {"high_level_agent": 0}                                               # TODO: this might need to be enhanced later
+        done = truncated = {"__all__": False}                                       # High level agent never terminates a game
+        my_print(f"Target piece {self.target_piece} and side:{self.target_side}, Reward:{rew}", self.DEBUG)
+        return obs, rew, done, truncated, {}
 
     def _low_level_step(self, action):
         '''Low-level agent connects the active piece to the target piece and side.'''
         obs, rew = {}, {}
-        self.selected_active_piece, self.selected_active_side = action
+        valid_action = self.process_action(action)     # Check validity and update connections if valid action
+        if valid_action:
+           reward = self.calculate_reward()
+           terminated = self.check_completion()
+        else:
+           reward = -1                               # Penalize invalid actions without updating the state
+           terminated = False                        # The environment only ever terminates when we reach the goal state.
         obs = {"high_level_agent": self._get_observation("high_level_agent")}         # Obs for the next agent
-        rew["high_level_agent"] = 1  #TEST to see if I can assign reward to agent without observation
-        rew["low_level_agent"] = 1
-        done = truncated = {"__all__": False}        #TODO: check if this is OK
-        my_print(f"Active piece {self.selected_active_piece} and side:{self.selected_active_side}, Reward:{rew}", self.DEBUG)
+        rew["high_level_agent"] = 1  #TODO: TRAIN AND TEST to see if I can assign reward to agent without observation
+        rew["low_level_agent"] = 5
+        done = truncated = self.check_completion()
         return obs, rew, done, truncated, {}
 
 
-
-
-
-
+    #------------------------------------------------------------------------------------------------
+    # reset
+    #------------------------------------------------------------------------------------------------
     def reset(self, seed=None, options=None):
         '''High level agent selects a target node and a side to connect to.
            Initializes the puzzle grid and available pieces and sides.
@@ -217,8 +314,8 @@ class PuzzleEnvironment:
         self.current_puzzle.fill(-1)             # Reset the puzzle grid to all -1, indicating empty cells
         self.update_pieces_sides()               # Mark all pieces and sides as available (1)
         self.available_connections.fill(1)       # Mark all connections as available (1)
-        self.selected_target_piece = -1
-        self.selected_target_side = -1
+        self.target_piece = -1
+        self.target_side = -1
 
         # Create a list of piece IDs from the already existing pieces_lst
         piece_ids = [piece.id for piece in self.pieces_lst]
@@ -233,22 +330,17 @@ class PuzzleEnvironment:
         my_print(f"Starting piece: {start_piece_id} placed in puzzle grid at {middle_position}", self.DEBUG)
 
         # First playing agent is the hihg level agent
-
-
         return {"high_level_agent": self._get_observation("high_level_agent")} , {}
 
-
+    #------------------------------------------------------------------------------------------------
+    # step
+    #------------------------------------------------------------------------------------------------
     def step(self, action_dict):
-
 
         if "high_level_agent" in action_dict:
             return self._high_level_step(action_dict["high_level_agent"])
         else:
-            a = self._low_level_step(action_dict["low_level_agent"])  #list(action_dict.values())[0]
-            return self._high_level_step(action_dict["high_level_agent"])
-
-
-
+            return self._low_level_step(action_dict["low_level_agent"])
 
 
 # ========================================================================================================
@@ -266,24 +358,40 @@ class PuzzleGymEnv(MultiAgentEnv):
 
         self.env = PuzzleEnvironment(config)
 
-        #  The action is defined as a tuple of 3 values: (piece_id, target_id, side_index * target_side_index)
-        self.action_space = MultiDiscrete([
+        #TODO: revise this! - CHECK: The number of sides has to be the max nbr of sides
+        #  High level - select target piece and side: (piece_id, side_index)
+        self.high_level_action_space = Discrete(
+            self.env.num_pieces * self.env.num_sides)  # combined dimension for target_piece_id and side_target_piece_index
+
+        #  Low level - select active piece and side to connect to (side mask depends on the target piece)
+        self.low_level_action_space = MultiDiscrete([
             self.env.num_pieces,                       # active_piece_id
-            self.env.num_sides,                        # active_piece_side_index. The INDEX of the side, not the actual value.
-           # self.env.num_pieces * self.env.num_sides   # combined dimension for target_piece_id and side_target_piece_index
+            self.env.num_sides,                        # side_index. The INDEX of the side, not the actual value.
         ])
-
-        # Include a masking on the policy to dynamically indicate which actions are valid at any given state of the environment.
-
-
-        self.observation_space = Dict({
-                    'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),         # 2x2 grid for a 4-piece puzzle
+        # High level - select target piece and side: (piece_id, side_index)
+        self.high_level_obs_space = Dict({
+                   'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),                        # 2x2 grid for a 4-piece puzzle
+                   'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
+                   'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8),           # Availability of connections
+                   'mask_target_side_index' : Box(low=0, high=1, shape=(self.env.num_pieces * self.env.num_sides, ), dtype=np.uint8),          # Mask for selecting the target piece and side in 2D - If the piece is placed and has at least one available side
+                })
+        #  Low level - select active piece and side given the target piece and side
+        self.low_level_obs_space = Dict({
+                    'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),                        # 2x2 grid for a 4-piece puzzle
                     'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
                     'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8),           # Availability of connections
                     'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                                # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece
-                   'mask_target_side_index'  : Box(low=0, high=1, shape=(self.env.num_pieces * self.env.num_sides, ), dtype=np.uint8),          # Mask for selecting the target piece and side in 2D - If the piece is placed and has at least one available side
+                    'target_piece'           : Discrete(self.env.num_pieces),  # target piece selected by the high-level agent
+                    'target_side'            : Discrete(self.env.num_sides),   # side of the target piece selected by the high-level agent
                 })
-
+        self.action_space = Dict({
+                "high_level_agent": self.high_level_action_space,
+                "low_level_agent": self.low_level_action_space
+            })
+        self.observation_space = Dict({
+                "high_level_agent": self.high_level_obs_space,
+                "low_level_agent": self.low_level_obs_space
+            })
 
     def step(self, action):
         return self.env.step(action)
@@ -294,7 +402,8 @@ class PuzzleGymEnv(MultiAgentEnv):
     def render(self, mode='human'):
         ''' Simple visualization in ASCII'''
         if mode == 'human':
-            self.env.visualize_puzzle()
+            print("Visualization method not implemented yet")
+        #    self.env.visualize_puzzle()
 
     def close(self):
         pass
@@ -320,11 +429,16 @@ if __name__ == "__main__":
     env = PuzzleGymEnv(config) # Initialize the env (including reset)
 
     num_steps = 10
+    num_sides = len(sides_list[0])
 
     for _ in range(num_steps):
         action = env.action_space.sample()       # action is to connect available pieces and sides with the target side
-        piece_id, target_id,  = action
-        print(f"Action: (active_piece: {piece_id}, target_piece: {target_id})")
+        target_piece_n_side  = action['high_level_agent']
+        target_piece = target_piece_n_side // num_sides  # Calculate target piece ID
+        target_side  = target_piece_n_side % num_sides   # Calculate side index of the target piece
+        active_piece, active_side = action['low_level_agent']
+        print(f"Action: active_piece: {active_piece}, side:{active_side}, target_piece: {target_piece}, side:{target_side}")
+
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces
         print(f"Reward: {reward}, Done: {terminated}")
 
