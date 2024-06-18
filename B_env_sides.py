@@ -204,7 +204,6 @@ class PuzzleEnvironment:
                         side_match=(get_side_index((i, j), (i + 1, j)), get_side_index((i + 1, j), (i, j)))
                     )
 
-
     def update_pieces_sides(self,current_piece_id = None, target_piece_id = None, side_idx = None, target_side_idx = None):
         """ Used when a piece is placed to mark a piece and connected sides as unavailable (meaning it's placed).
         """
@@ -229,7 +228,6 @@ class PuzzleEnvironment:
                 self.update_available_connections_n_sides(current_piece_id, side_idx)         # Update the available connections and sides based on the newly connected piece's side
                 self.update_available_connections_n_sides(target_piece_id, target_side_idx)   # Update the available connections and sides for the target piece as well
 
-
     def update_available_connections_n_sides(self, piece_id, side_idx):
         '''Updates the list of available connections between pieces based on the current state of the puzzle.
         '''
@@ -237,10 +235,6 @@ class PuzzleEnvironment:
         connection_idx = (piece_id * self.num_sides) + side_idx  # Calculate the index of the connection in the flattened array
         self.available_connections[connection_idx] = -1          # Mark connection as unavailable
         self.available_pieces_sides[piece_id, side_idx]  = -1    # Mark side as unavailable
-
-    def flatten_available_connections(self,connections_dict):
-        """Flattens a dictionary of lists into a 1D array."""
-        return np.concatenate([np.array(v) for v in connections_dict.values()])
 
     def _get_action_mask(self):
         """Returns separate masks for each dimension in the MultiDiscrete action space.
@@ -313,7 +307,6 @@ class PuzzleEnvironment:
         return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
 
     # TODO: need to fix this with the correct side number
-
     def place_piece(self, rotated_piece, side_index, target_position, target_side_idx):
         '''Place a piece adjacent to the target piece based on the connecting sides.'''
         # Mapping of side indices to position offsets based on the connection logic

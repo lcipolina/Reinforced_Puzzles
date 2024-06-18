@@ -107,8 +107,8 @@ class HierarchicalWindyMazeEnv(MultiAgentEnv):
             logger.debug("high level final reward {}".format(f_rew))
             rew["high_level_agent"] = f_rew
             obs["high_level_agent"] = f_obs
-        elif self.steps_remaining_at_level == 0:
-            terminated[self.low_level_agent_id] = True
+        elif self.steps_remaining_at_level == 0:  # This means that the low level agent has run out of steps
+            terminated[self.low_level_agent_id] = True 
             truncated[self.low_level_agent_id] = False
             rew["high_level_agent"] = 0
             obs["high_level_agent"] = f_obs

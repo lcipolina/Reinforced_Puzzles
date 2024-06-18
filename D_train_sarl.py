@@ -7,6 +7,7 @@ import numpy as np
 import random
 import ray
 from ray import air, tune
+from ray.rllib.models import ModelCatalog
 from ray.rllib.utils.typing import ModelConfigDict, TensorType
 from ray.rllib.utils.framework import try_import_torch
 torch, nn = try_import_torch()
@@ -17,14 +18,16 @@ current_script_dir  = os.path.dirname(os.path.realpath(__file__)) # Get the curr
 parent_dir          = os.path.dirname(current_script_dir)         # Get the parent directory (one level up)
 sys.path.insert(0, parent_dir)                                    # Add parent directory to sys.path
 
-from B_env_hrl import PuzzleGymEnv as Env                         # Custom environment
-from D_ppo_config import get_marl_hrl_trainer_config  as get_trainer_config       # Tranier config for single agent PPO
+from B_env_sides import PuzzleGymEnv as Env                       # Custom environment
+from C_policy import CustomMaskedModel as CustomTorchModel        # Custom model with masks
+from D_ppo_config import get_sarl_trainer_config                  # Tranier config for single agent PPO
 
 
 output_dir = os.path.expanduser("~/ray_results") # Default output directory
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
-
+# Register the custom model - used by D_ppo_config.py
+ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)
 
 
 
@@ -56,7 +59,7 @@ class RunRay:
         lr_start,lr_end,lr_time = 2.5e-4,  2.5e-5, 50 * 1000000 #embelishments of the lr's
 
         # Get the trainer with the base configuration  - #OBS: no need to register Env anymore, as it is passed on the trainer config!
-        trainer_config = get_trainer_config(Env, self.custom_env_config, self.setup_dict,
+        trainer_config = get_sarl_trainer_config(Env, self.custom_env_config, self.setup_dict,
                             lr_start, lr_time, lr_end )
 
         #_____________________________________________________________________________________________
@@ -92,7 +95,7 @@ class RunRay:
                                                                checkpoint_at_end=True,
                                                                num_to_keep= 3 ),#keep only the last 3 checkpoints
                         #callbacks = [wandb_callbacks],  # WandB local_mode = False only!
-                        verbose= 3, #0 for less output while training - 3 for seeing custom_metrics better
+                        verbose= 2, #0 for less output while training - 3 for seeing custom_metrics better
                         local_dir = output_dir
                             )
                         )

@@ -2,6 +2,16 @@
 
 # python hierarchical_training.py > rllib_output.log 2>&1
 
+# Estaba en correjir esto - ver chatGPT:    assert isinstance(terminateds, dict), "Not a multi-agent terminateds dict!"
+#AssertionError: Not a multi-agent terminateds dict!
+
+# Tambien tengo que corroborar que este usando bien cada politica
+
+# Darle un print a la politica que se esta usando en cada momento - en el high level agent del environment y tambien cuando entra a cada una de las pols
+
+# Cambiar el matching de los lados: "Connected piece 2 side 1 to piece 0 side 1" --> ponerlo con los original side numbers
+
+
 
 import os, sys
 
@@ -16,8 +26,6 @@ from D_train import RunRay as train_policy
 from Z_utils import get_checkpoint_from_json_file
 
 
-
-
 class Runner:
         def __init__(self, setup_dict, custom_env_config):
 
@@ -29,7 +37,7 @@ class Runner:
             '''Runs the entire training loop
             '''
             # Call Ray to train
-            train_result         = train_policy(self.setup_dict, self.custom_env_config).train()
+            train_result = train_policy(self.setup_dict, self.custom_env_config).train()
             # Reads 'output.xlsx' and generates training graphs avg and rewards per seed - reward, loss, entropy
             # graph_reward_n_others()
             return train_result['checkpoint_path'] # used later for inference
@@ -74,7 +82,7 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     env_config_dict = {
                     'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                     'num_pieces': len(sides_list),
-                    'grid_size': 10,        # 10x10 grid (100 pieces in total)
+                    'grid_size': 5,        # 10x10 grid (100 pieces in total)
                     "DEBUG": True,         # Whether to print debug info
                     }
 
@@ -136,7 +144,7 @@ if __name__ == '__main__':
         env_config_dict = {
                         'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                         'num_pieces': len(sides_list),
-                        'grid_size': 20,        # 10x10 grid (100 pieces in total)
+                        'grid_size': 5,        # 10x10 grid (100 pieces in total)
                         "DEBUG": False,         # Whether to print debug info
                         }
 
