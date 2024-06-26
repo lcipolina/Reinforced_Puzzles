@@ -2,15 +2,12 @@
 
 # python hierarchical_training.py > rllib_output.log 2>&1
 
-# Estaba en correjir esto - ver chatGPT:    assert isinstance(terminateds, dict), "Not a multi-agent terminateds dict!"
-#AssertionError: Not a multi-agent terminateds dict!
 
-# Tambien tengo que corroborar que este usando bien cada politica
-
-# Darle un print a la politica que se esta usando en cada momento - en el high level agent del environment y tambien cuando entra a cada una de las pols
+# Tengo que corroborar que este usando bien cada political model - que no se este usando el mismo para todos los agentes
 
 # Cambiar el matching de los lados: "Connected piece 2 side 1 to piece 0 side 1" --> ponerlo con los original side numbers
 
+# EN QUE ESTABA: implementar esto: update_available_connections_n_sides y ver el tema mascaras
 
 
 import os, sys
@@ -67,9 +64,6 @@ def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, tr
     '''
 
     #======== Because of the SLURM runner, this needs to be here (otherwise not taken)
-    # If we want to use a pre-set list of distances - for reproducibility
-    #train_path  = '/p/home/jusers/cipolina-kun1/juwels/coalitions/dist_training_jan31.txt'
-    #test_path  = '/p/home/jusers/cipolina-kun1/juwels/coalitions/dist_testing_jan31.txt'
 
     #if setup_dict is None or env_config_dict is None:  #TODO: uncomment this!
     sides_list = [

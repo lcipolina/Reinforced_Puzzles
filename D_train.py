@@ -102,7 +102,7 @@ class RunRay:
 
         print("BEST RESULT:")
         print(f" Reward_max: {best_result_grid.metrics['sampler_results']['episode_reward_max']}")
-        print(f" Reward_mmean: {best_result_grid.metrics['sampler_results']['episode_reward_mean']}")
+        print(f" Reward_mean: {best_result_grid.metrics['sampler_results']['episode_reward_mean']}")
 
         return best_result_grid
 

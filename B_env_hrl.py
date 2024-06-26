@@ -9,8 +9,6 @@ import gymnasium as gym
 from gymnasium.spaces import Box, MultiDiscrete, Dict, Discrete
 from ray.rllib.env import MultiAgentEnv
 
-# EN QUE ESTABA: implementar esto: update_available_connections_n_sides y ver el tema mascaras
-
 
 from Z_utils import my_print
 
@@ -63,12 +61,14 @@ class Piece:
 class PuzzleEnvironment:
     ''' A puzzle environment where agents must connect pieces together to form a complete puzzle.'''
     def __init__(self, config=None):
-        self.sides          = config.get("sides", [[5, 6, 7, 8]])                                          # List of Lists -  Sides are labeled to be different from the keynumbers: "1" for available, etc.
-        self.num_pieces     = config.get("num_pieces", 4)                                                  # Number of pieces in the puzzle
+        self.agents = {"high_level_agent", "low_level_agent"}                    # Needed by the Policy dicts
+        self._agent_ids       = set(self.agents)                                 # Needed by Policy and by terminateds_dict
+        self.sides          = config.get("sides", [[5, 6, 7, 8]])                # List of Lists -  Sides are labeled to be different from the keynumbers: "1" for available, etc.
+        self.num_pieces     = config.get("num_pieces", 4)                        # Number of pieces in the puzzle
         self.num_sides      = len(self.sides)
-        self.DEBUG          = config.get("DEBUG", False)                                                   # Whether to print or not
-        self.grid_size      = config.get("grid_size", 10)                                                  # height and width # int(np.sqrt(self.num_pieces))  # Generates 4 pieces with 4 sides
-        self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides)     # Generate pieces, sides and availability
+        self.DEBUG          = config.get("DEBUG", False)                         # Whether to print or not
+        self.grid_size      = config.get("grid_size", 10)                        # height and width # int(np.sqrt(self.num_pieces))  # Generates 4 pieces with 4 sides
+        self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides)      # Generate pieces, sides and availability
 
         # Define the puzzle grid dimensions (Ex: 2x2 for 4 pieces)
         # Current puzzle is an array (then converted to graph for comparisons), target puzzle is a graph
@@ -285,8 +285,6 @@ class PuzzleEnvironment:
 
         return mask_active_piece, mask_target_piece_n_side
 
-
-
     def _get_observation(self, agent_id):
         '''Get the current observation of the environment.'''
 
@@ -402,9 +400,9 @@ class PuzzleEnvironment:
         self.target_side  = target_piece_n_side % self.num_sides   # Calculate side index of the target piece
         obs = {"low_level_agent": self._get_observation("low_level_agent")}     # Obs for the next agent
         rew = {"high_level_agent": 0}                                           # TODO: this might need to be enhanced later
-        terminated = truncated = {"__all__": False}                              # High-level agent never terminates a game
+        self.truncated_dict = {"__all__": False}                              # High-level agent never terminates a game
         my_print(f"Target piece {self.target_piece} and side:{self.target_side}, Reward:{rew}", self.DEBUG)
-        return obs, rew, terminated, truncated, {}
+        return obs, rew, self.terminateds_dict, self.truncated_dict, {}
 
     def _low_level_step(self, action):
         '''Low-level agent connects the active piece to the target piece and side.'''
@@ -418,8 +416,9 @@ class PuzzleEnvironment:
            terminated = False                                                    # The environment only ever terminates when we reach the goal state.
         obs = {"high_level_agent": self._get_observation("high_level_agent")}    # Obs for the next agent
         rew["high_level_agent"], rew["low_level_agent"]  = reward, reward
-        truncated = truncated = {"__all__": terminated}  #TODO: I am not sure about this!
-        return obs, rew, terminated, truncated, {}
+        self.terminateds_dict["__all__"]= terminated
+        self.truncated_dict = self.terminateds_dict
+        return obs, rew, self.terminateds_dict, self.truncated_dict, {}
 
     #------------------------------------------------------------------------------------------------
     # reset
@@ -429,6 +428,10 @@ class PuzzleEnvironment:
            Initializes the puzzle grid and available pieces and sides.
         '''
         if seed is not None: random.seed(seed)   # as per new gymnasium
+        self.terminateds_dict = {agent: False for agent in self._agent_ids}
+        self.terminateds_dict['__all__']   = False
+        self.truncated_dict = {agent: False for agent in self._agent_ids}
+        self.truncated_dict['__all__']   = False
 
         # Reset current puzzle mark all pieces and connections as available
         self.current_puzzle.fill(-1)             # Reset the puzzle grid to all -1, indicating empty cells
@@ -475,9 +478,6 @@ class PuzzleGymEnv(MultiAgentEnv):
                       'num_pieces': 4}
 
         self.env = PuzzleEnvironment(config)
-
-        self.agents = {"high_level_agent", "low_level_agent"}
-        self._agent_ids = set(self.agents)
 
         #TODO: revise this! - CHECK: The number of sides has to be the max nbr of sides
         #  High level - select target piece and side: (piece_id, side_index)
