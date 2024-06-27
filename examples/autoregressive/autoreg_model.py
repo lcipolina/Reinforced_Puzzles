@@ -23,8 +23,9 @@ class ActionModel(nn.Module):
                 )
 
         # Second action hidden layer with ReLU activation
+        a1_input_size = 1  # Input size is the number of a1 actions
         self.a2_hidden = SlimFC(
-            in_size=1,
+            in_size=a1_input_size, # Input size is 1 because the input is the action taken in the previous step
             out_size=hidden_layer_size,
             activation_fn=nn.ReLU,
             initializer=normc_init_torch(1.0),
