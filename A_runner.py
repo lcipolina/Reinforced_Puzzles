@@ -57,47 +57,11 @@ class Runner:
 # CONFIGS
 ##################################################
 
-def run_runner(slurm_config = None,setup_dict = None, env_config_dict = None, train_n_eval = True, train_path = None,test_path  = None, checkpoint_path_trained = None):
+def run_runner(setup_dict = None, env_config_dict = None, train_n_eval = True, train_path = None,test_path  = None, checkpoint_path_trained = None):
     '''
-    Passess the config variables to RLLIB's trainer
-    slurm_config: dict with the number of workers, cpus and gpus - coming from 'ray_init.py via call on the SLURM run
+    Run RLLIB's trainer and inference classes
     '''
 
-    #======== Because of the SLURM runner, this needs to be here (otherwise not taken)
-
-    #if setup_dict is None or env_config_dict is None:  #TODO: uncomment this!
-    sides_list = [
-    [5, 6, 7, 8],
-    [7, 8, 5, 6],
-    [5, 6, 7, 8],
-    [7, 8, 5, 6]
-    ]
-
-    env_config_dict = {
-                    'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
-                    'num_pieces': len(sides_list),
-                    'grid_size': 5,        # 10x10 grid (100 pieces in total)
-                    "DEBUG": True,         # Whether to print debug info
-                    }
-
-    setup_dict = { 'training_iterations': 70,
-                    'train_batch_size': 900,
-                    'seeds_lst': [42],
-                    'cpu_nodes': slurm_config.get('num_cpus', 19),
-                    'experiment_name': 'puzzle',
-                    }
-
-    # TRAIN n EVAL
-    train_n_eval = True
-
-    # EVAL
-   # train_n_eval = False # inference only
-    #checkpoint_path_evaluate = \
-    #"/p/home/jusers/cipolina-kun1/juwels/ray_results/new_distances/PPO_ShapleyEnv_01c47_00000_0_2024-02-01_15-34-29/checkpoint_000290"
-    # =====================
-
-
-    # Use the training distances that worked better - diversified points
     runner = Runner(setup_dict, env_config_dict)
 
     if train_n_eval:
