@@ -48,11 +48,7 @@ class RunRay:
         # Setup Config
         #_____________________________________________________________________________________________
 
-        _train_batch_size = self.setup_dict['train_batch_size']
-        seed              = self.setup_dict['seed']
         train_iteration   = self.setup_dict['training_iterations']
-        num_cpus          = self.setup_dict['cpu_nodes']
-        num_gpus          = self.setup_dict.get('gpu_nodes', 0)
         lr_start,lr_end,lr_time = 2.5e-4,  2.5e-5, 50 * 1000000 #embelishments of the lr's
 
         # Get the trainer with the base configuration  - #OBS: no need to register Env anymore, as it is passed on the trainer config!

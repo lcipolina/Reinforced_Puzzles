@@ -28,9 +28,10 @@ def get_sarl_trainer_config(env_class,
        OBS: Custom model and action distribution have been registered in their defn scripts.
     '''
 
-    _train_batch_size  = setup_dict['train_batch_size']
-    num_cpus           = setup_dict['cpu_nodes']
-    _seed              = setup_dict.get('seed', 42)
+    _train_batch_size = setup_dict['train_batch_size']
+    num_cpus          = setup_dict['cpu_nodes']
+    num_gpus          = setup_dict.get('gpu_nodes', 0)
+    _seed             = setup_dict.get('seed', 42)
 
     trainer_config = (PPOConfig()
                             .environment(env=env_class, # if we pass it like this, we don't need to register the env
@@ -124,13 +125,12 @@ def get_marl_hrl_trainer_config(env_class,
     trainer_config = (
             PPOConfig()
             .environment(env=env_class, # if we pass it like this, we don't need to register the env
-                        env_config= custom_env_config)
+                         env_config= custom_env_config)
             .training(train_batch_size=_train_batch_size,  # Number of samples that are collected before a gradient step is taken.
                       sgd_minibatch_size=64,  # These are the number of samples that are used for each SGD iteration.
                        # entropy_coeff=0.2,  #it doesnt seem to change much
                        # kl_coeff=0.01,
-                      model = {"_disable_preprocessor_api": False,  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
-                                            } )
+                      model = {"_disable_preprocessor_api": False})  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
             .rollouts(num_rollout_workers=num_cpus, num_envs_per_env_runner=1, rollout_fragment_length='auto')
             .framework("torch")
             .debugging(seed=_seed)
