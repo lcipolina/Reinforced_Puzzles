@@ -61,7 +61,7 @@ class Piece:
 class PuzzleEnvironment:
     ''' A puzzle environment where agents must connect pieces together to form a complete puzzle.'''
     def __init__(self, config=None):
-        self.agents = {"high_level_agent", "low_level_agent"}                    # Needed by the Policy dicts
+        self.agents = {"high_level_policy", "low_level_policy"}                    # Needed by the Policy dicts
         self._agent_ids       = set(self.agents)                                 # Needed by Policy and by terminateds_dict
         self.sides          = config.get("sides", [[5, 6, 7, 8]])                # List of Lists -  Sides are labeled to be different from the keynumbers: "1" for available, etc.
         self.num_pieces     = config.get("num_pieces", 4)                        # Number of pieces in the puzzle
@@ -85,19 +85,21 @@ class PuzzleEnvironment:
     #------------------------------------------------------------------------------------------------
 
     # TODO: need to fix this with the correct side number
-    def place_piece(self, rotated_piece, side_index, target_position, target_side_idx):
+    def place_piece(self, rotated_piece, side_lbl, target_position, target_side_lbl):
         '''Place a piece adjacent to the target piece based on the connecting sides.'''
+
         # Mapping of side indices to position offsets based on the connection logic
+        # TODO: connection and matching is based on side's lables THIS WILL NOT WORK - URGENT CHANGE
         connection_map = {
-            (0, 0): (-1, 0),  # Current top side connects to target top side
-            (1, 1): (0, 1),   # Current right side connects to target right side
-            (2, 2): (1, 0),   # Current bottom side connects to target bottom side
-            (3, 3): (0, -1)   # Current left side connects to target left side
+            (1, 1): (-1, 0),  # Current top side connects to target top side
+            (2, 2): (0, 1),   # Current right side connects to target right side
+            (3, 3): (1, 0),   # Current bottom side connects to target bottom side
+            (4, 4): (0, -1)   # Current left side connects to target left side
         }
 
         # Calculate the new position based on the target piece's position and the connecting sides
-        if (side_index, target_side_idx) in connection_map:
-            row_offset, col_offset = connection_map[(side_index, target_side_idx)]
+        if (side_lbl, target_side_lbl) in connection_map:
+            row_offset, col_offset = connection_map[(side_lbl, target_side_lbl)]
             new_position = (target_position[0] + row_offset, target_position[1] + col_offset)
 
             # Ensure the new position is within bounds and not already occupied
@@ -111,7 +113,7 @@ class PuzzleEnvironment:
                     # TODO: review this
                     my_print(f"Position {new_position} is already occupied.", self.DEBUG)
 
-        my_print(f"Invalid placement for piece {rotated_piece.id} at side {side_index} adjacent to target position {target_position}", self.DEBUG)
+        my_print(f"Invalid placement for piece {rotated_piece.id} at side {side_lbl} adjacent to target position {target_position}", self.DEBUG)
         return False
 
     #TODO: ver esto
@@ -163,18 +165,25 @@ class PuzzleEnvironment:
                         side_match=(get_side_index((i, j), (i + 1, j)), get_side_index((i + 1, j), (i, j)))
                     )
 
-    def update_current_puzzle(self, current_piece_id, target_piece_id, side_idx, target_side_idx):
-        '''Update the current puzzle grid by placing the current piece adjacent to the target piece based on the connecting side.'''
+    #TODO: revisit this, For now I am coding something like a domino. This might not be needed
+    def update_current_puzzle(self, current_piece_id, target_piece_id, current_side_id, target_side_id):
+        '''Update the current puzzle grid by placing the current piece adjacent to the target piece based on the connecting side.
+           Finds the matching (labeled) sides and places the current piece in the correct position.
+        '''
         target_position = np.argwhere(self.current_puzzle == target_piece_id)  # Find the position of the target piece in the puzzle grid
         if target_position.size > 0:
-            target_position = tuple(target_position[0])  # Convert the position to a tuple
-            for rotation in range(4):  # Try all 4 possible orientations
-                rotated_piece = self.pieces_lst[current_piece_id].copy()
-                rotated_piece.rotate(rotation * 90)  # Use existing rotate method
+            target_position = tuple(target_position[0])                  # Convert the position to a tuple
+            for rotation in range(4):                                    # Try all 4 possible orientations
+                rotated_piece = self.pieces_lst[current_piece_id].copy() # Create a copy of the current piece
+                rotated_piece.rotate(rotation * 90)                      # Use existing rotate method
                 # Calculate the corresponding side index of the rotated piece
-                adjusted_side_idx = (side_idx + rotation) % 4
-                if rotated_piece.sides_lst[adjusted_side_idx] == self.pieces_lst[target_piece_id].sides_lst[target_side_idx]:
-                    if self.place_piece(rotated_piece, adjusted_side_idx, target_position, target_side_idx):
+                adjusted_side_idx = (current_side_id + rotation) % 4     # This side will be connected to the target piece
+                # Check if side lables match after the rotation
+                if rotated_piece.sides_lst[adjusted_side_idx] == self.pieces_lst[target_piece_id].sides_lst[target_side_id]:
+                   target_side_lbl = self.pieces_lst[target_piece_id].sides_lst[target_side_id]  # Convert target side idx to label
+                   adjusted_side_lbl =  rotated_piece.sides_lst[adjusted_side_idx]
+                   # Place piece in target position and connect adjusted side to target side based on matching side LBLs
+                   if self.place_piece(rotated_piece, adjusted_side_lbl, target_position, target_side_lbl):
                         return True
         return False
 
@@ -225,10 +234,12 @@ class PuzzleEnvironment:
                         graph.add_edge(piece_id, self.current_puzzle[idx, jdx-1])
         return graph
 
-    def sides_match(self, piece, side_index, target_piece, target_side_index):
-        ''' Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.'''
+    def sides_match(self, current_piece_id, current_side_lbl, target_piece_id, target_side_lbl):
+        ''' Validate matching criteria for sides - checks whether two pieces can be legally connected at specified sides.
+            OBS: Policy selects pieces and sides idx but the checking is on the sides labels!
+        '''
         # TODO: This should be updated to more complexity could mean that the sides have complementary shapes, colors, numbers, or any other criteria that define a correct connection in the puzzle.
-        return piece.sides_lst[side_index] == target_piece.sides_lst[target_side_index]
+        return current_side_lbl ==  target_side_lbl
 
 
     #------------------------------------------------------------------------------------------------
@@ -291,7 +302,10 @@ class PuzzleEnvironment:
         #TODO: think about the mask - #TODO: check if the mask is correct
         mask_active_piece, mask_target_piece_n_side = self._get_action_mask()  # Mask for: Valid active pieces, target pieces, and the target pieces' sides.
 
-        if agent_id == "high_level_agent":  # Selects the target piece and side
+        print("self.current_puzzle:",self.current_puzzle)
+        print("self.available_pieces_sides:",self.available_pieces_sides)
+
+        if agent_id == "high_level_policy":  # Selects the target piece and side
             observation = {
                 "current_puzzle":         self.current_puzzle,             # Current state of the puzzle grid, -1 means empty
                 "available_pieces_sides": self.available_pieces_sides,     # List of available pieces and their sides, -1 means unavailable, 1 means available
@@ -303,9 +317,9 @@ class PuzzleEnvironment:
                 "current_puzzle":         self.current_puzzle,             # Current state of the puzzle grid, -1 means empty
                 "available_pieces_sides": self.available_pieces_sides,     # List of available pieces and their sides, -1 means unavailable, 1 means available
                 "available_connections":  self.available_connections,      # List of available connections between pieces, -1 means unavailable
-                "target_piece":           self.target_piece,         # The target piece selected by the high-level agent
-                "target_side":            self.target_side,           # The side of the target piece selected by the high-level agent
-                "mask_piece_id":          mask_active_piece,                   # Mask for selecting the active piece- Only available pieces can be selected as current piece
+                "target_piece":           self.target_piece_id,            # The IDX of target piece selected by the high-level agent
+                "target_side":            self.target_side_lbl,            # The label side of the target piece selected by the high-level agent
+                "mask_piece_id":          mask_active_piece,               # Mask for selecting the active piece- Only available pieces can be selected as current piece
             }
         return observation
 
@@ -321,10 +335,12 @@ class PuzzleEnvironment:
             Update the available connections based on the newly connected piece's side and remove the active piece from the list of available pieces.
             Agent will then receive a reward based on whether the action was valid - meaning that the pieces could be connected and the puzzle state was updated accordingly.
         '''
-        #OBS: the action returns the side_idx in (0-4) numbers, but the sides are labeled as 5,6,7,8
-        current_piece_id, side_idx = action
+        # Convert from side Idx to side label. Rationale: Policy selects idx (0,..,3) but sides have lables that need to match. Ex: 5,6,7,8)
+        current_piece_id, current_side_id = action
+        current_piece_obj = next((piece for piece in self.pieces_lst if piece.id == current_piece_id), None)   # From piece_idx to piece_object
+        current_side_lbl  = current_piece_obj.sides_lst[current_side_id]                                       # This is the one used for comparison
 
-        my_print(f"Processing action: Connect selected piece {current_piece_id} at side {side_idx} to target piece {self.target_piece} at side {self.target_side}",self.DEBUG)
+        my_print(f"Processing action: Connect selected piece {current_piece_id} at side labled {current_side_lbl} to target piece {self.target_piece_id} at side labled {self.target_side_lbl}",self.DEBUG)
 
         # Check if the selected current piece is still available to be played (i.e., not already placed)
         if self.available_pieces_sides[current_piece_id, -1] == -1:
@@ -334,20 +350,20 @@ class PuzzleEnvironment:
         # Check if the current piece is available and not already placed
         if self.available_pieces_sides[current_piece_id, -1] == 1:
             # Check if the target piece is already placed in the puzzle and has at least one available side to connect
-            if self.available_pieces_sides[self.target_piece, -1] == -1 and self.available_pieces_sides[self.target_piece, self.target_side] != -1:
+            if self.available_pieces_sides[self.target_piece_id, -1] == -1 and self.available_pieces_sides[self.target_piece_id, self.target_side_id] != -1:
                 # Check if the selected sides on the active and target pieces can legally connect
-                if self.sides_match(self.pieces_lst[current_piece_id], side_idx, self.pieces_lst[self.target_piece], self.target_side):
+                if self.sides_match(current_piece_id, current_side_lbl, self.target_piece_id, self.target_side_lbl):
                         # If placement is successful, update the active piece and target_piece, sides and connections as no longer available
-                        self.update_current_puzzle(current_piece_id, self.target_piece, side_idx, self.target_side) # Update self.current_puzzle
-                        self.update_pieces_sides(current_piece_id,self.target_piece, side_idx, self.target_side)
-                        my_print(f"Connected piece {current_piece_id} side {side_idx} to piece {self.target_piece} side {self.target_side}",self.DEBUG)
+                        self.update_current_puzzle(current_piece_id, self.target_piece_id, current_side_id, self.target_side_id) # Update self.current_puzzle
+                        self.update_pieces_sides(current_piece_id,self.target_piece_id, current_side_id, self.target_side_id)
+                        my_print(f"Connected piece {current_piece_id} to side labled {current_side_lbl} to piece {self.target_piece_id} to side labled {self.target_side_lbl}",self.DEBUG)
                         return True                                                             # Return True to indicate a valid and successful action that has modified the puzzle's state.
                 else:
-                        my_print(f"Sides unmatched for piece {current_piece_id} side {side_idx} and piece {self.target_piece} side {self.target_side}",self.DEBUG)
+                        my_print(f"Sides unmatched for piece {current_piece_id} to side labled {current_side_lbl} and piece {self.target_piece_id} to side labled {self.target_side_lbl}",self.DEBUG)
             else:
-                    my_print(f"Cannot connect piece {current_piece_id} to (renumerated) side {side_idx} with piece's {self.target_piece}  (renumerated) side {self.target_side}",self.DEBUG)
+                    my_print(f"Cannot connect piece {current_piece_id} to side labled {current_side_lbl} with piece's {self.target_piece_id} to side labled {self.target_side_lbl}",self.DEBUG)
         else:
-                my_print(f"Target piece {self.target_piece} or side {self.target_side} not available.", self.DEBUG)
+                my_print(f"Target piece {self.target_piece_id} or side labled {self.target_side_lbl} not available.", self.DEBUG)
 
         return False                                                                            # Return False if any condition fails and the pieces cannot be connected as intended
 
@@ -393,29 +409,32 @@ class PuzzleEnvironment:
     # High-level and low-level step
     #------------------------------------------------------------------------------------------------
     def _high_level_step(self, action):
+        '''Process action: converts idx to lables and returns the observation for the next agent.'''
         target_piece_n_side = action
-        # Decode the combined_target_index to get target_piece_id and target_side_index
-        # Sides are renumerated from their original lables to 1, 2, ... TODO: think if this is correct
-        self.target_piece = target_piece_n_side // self.num_sides  # Calculate target piece ID
-        self.target_side  = target_piece_n_side % self.num_sides   # Calculate side index of the target piece
-        obs = {"low_level_agent": self._get_observation("low_level_agent")}     # Obs for the next agent
-        rew = {"high_level_agent": 0}                                           # TODO: this might need to be enhanced later
-        self.truncated_dict = {"__all__": False}                              # High-level agent never terminates a game
-        my_print(f"Target piece {self.target_piece} and side:{self.target_side}, Reward:{rew}", self.DEBUG)
+        # Convert from side Idx to side label. Rationale: Policy selects idx (0,..,3) but sides have lables that need to match. Ex: 5,6,7,8)
+        self.target_piece_id = target_piece_n_side // self.num_sides  # Calculate target piece ID
+        target_piece_obj = next((piece for piece in self.pieces_lst if piece.id == self.target_piece_id), None)   # From piece_idx to piece_object
+        self.target_side_id = target_piece_n_side % self.num_sides                   # Calculate side index of the target piece - used for the piece placement in the puzzle
+        self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id]      # This is the one used for matching checks
+        obs = {"low_level_policy": self._get_observation("low_level_policy")}   # Observation for the next agent
+        rew = {"high_level_policy": 0}                                          # TODO: this might need to be enhanced later
+        self.truncated_dict = {"__all__": False}                                # High-level agent never terminates a game
+
+        my_print(f"Target piece id: {self.target_piece_id},  side_lbl: {self.target_side_lbl}, Reward:{rew}", self.DEBUG)
         return obs, rew, self.terminateds_dict, self.truncated_dict, {}
 
     def _low_level_step(self, action):
         '''Low-level agent connects the active piece to the target piece and side.'''
         obs, rew = {}, {}
-        valid_action = self.process_action(action)     # Check validity and update connections if valid action
+        valid_action = self.process_action(action)                               # Process idx to lbl and Check validity and update connections if valid action
         if valid_action:
            reward = self.calculate_reward()
            terminated = self.check_completion()
         else:
            reward = -1                                                           # Penalize invalid actions without updating the state
            terminated = False                                                    # The environment only ever terminates when we reach the goal state.
-        obs = {"high_level_agent": self._get_observation("high_level_agent")}    # Obs for the next agent
-        rew["high_level_agent"], rew["low_level_agent"]  = reward, reward
+        obs = {"high_level_policy": self._get_observation("high_level_policy")}  # Obs for the next agent
+        rew["high_level_policy"], rew["low_level_policy"]  = reward, reward
         self.terminateds_dict["__all__"]= terminated
         self.truncated_dict = self.terminateds_dict
         return obs, rew, self.terminateds_dict, self.truncated_dict, {}
@@ -437,9 +456,10 @@ class PuzzleEnvironment:
         self.current_puzzle.fill(-1)             # Reset the puzzle grid to all -1, indicating empty cells
         self.update_pieces_sides()               # Mark all pieces and sides as available (1)
         self.available_connections.fill(1)       # Mark all connections as available (1)
-        self.target_piece = -1
-        self.target_side  = -1
-        piece_ids         = [piece.id for piece in self.pieces_lst]  # Create a list of piece IDs from the already existing pieces_lst
+        self.target_piece_id = -1
+        self.target_side_id = 0
+        self.target_side_lbl = -1  # TODO: not sure if this is needed and the right value!
+        piece_ids         = [piece.id for piece in self.pieces_lst]  # Take each piece ID and Create a list of piece IDs from the already existing pieces_lst
         # TODO: np.random.shuffle(piece_ids)
 
         # Need to start with a placed piece, otherwise there is no available target piece and the action mask fails
@@ -451,17 +471,23 @@ class PuzzleEnvironment:
         my_print(f"Starting piece: {start_piece_id} placed in puzzle grid at {middle_position}", self.DEBUG)
 
         # First playing agent is the hihg level agent
-        return {"high_level_agent": self._get_observation("high_level_agent")} , {}
+        return {"high_level_policy": self._get_observation("high_level_policy")} , {}
 
     #------------------------------------------------------------------------------------------------
     # step
     #------------------------------------------------------------------------------------------------
     def step(self, action_dict):
+        ''' Each Pol converts from selected idx to labels and returns the observation for the next agent.
+            The matching is done at the label level.
+        '''
 
-       if "high_level_agent" in action_dict:
-          return self._high_level_step(action_dict["high_level_agent"])
-       else:
-          return self._low_level_step(action_dict["low_level_agent"])
+        if "high_level_policy" in action_dict:
+          print(f"High-level action: {action_dict}")
+          return self._high_level_step(action_dict["high_level_policy"])
+        else:
+          print(f"Low-level action: {action_dict}")
+          return self._low_level_step(action_dict["low_level_policy"])
+
 
 
 # ========================================================================================================
@@ -480,14 +506,14 @@ class PuzzleGymEnv(MultiAgentEnv):
         self.env = PuzzleEnvironment(config)
 
         #TODO: revise this! - CHECK: The number of sides has to be the max nbr of sides
-        #  High level - select target piece and side: (piece_id, side_index)
+        #  High level - select target piece and side: (piece_id, side_idx)
         self.high_level_action_space = Discrete(
             self.env.num_pieces * self.env.num_sides)  # combined dimension for target_piece_id and side_target_piece_index
 
         #  Low level - select active piece and side to connect to (side mask depends on the target piece)
         self.low_level_action_space = MultiDiscrete([
             self.env.num_pieces,                       # active_piece_id
-            self.env.num_sides,                        # side_index. The INDEX of the side, not the actual value.
+            self.env.num_sides                       # side_index. The INDEX of the side, not the actual value.
         ])
         # High level - select target piece and side: (piece_id, side_index)
         self.high_level_obs_space = Dict({
@@ -498,26 +524,33 @@ class PuzzleGymEnv(MultiAgentEnv):
                 })
         #  Low level - select active piece and side given the target piece and side
         self.low_level_obs_space = Dict({
-                    'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),                        # 2x2 grid for a 4-piece puzzle
-                    'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
-                    'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8),           # Availability of connections
-                    'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                                # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece
+                    'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),                     # 2x2 grid for a 4-piece puzzle
+                    'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides +1), dtype=np.int8),     # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
+                    'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8),        # Availability of connections
+                    'mask_piece_id'          : Box(low=0, high=1, shape=(self.env.num_pieces,), dtype=np.uint8),                             # Mask for selecting the active piece - Only Available Pieces Can be Selected as Current Piece
                     'target_piece'           : Discrete(self.env.num_pieces),  # target piece selected by the high-level agent
                     'target_side'            : Discrete(self.env.num_sides),   # side of the target piece selected by the high-level agent
                 })
         # To map the action space to the right policy.
         self._action_space_in_preferred_format = True # This means that the action space is a dictionary with the agent_id as key
         self.action_space = Dict({
-                "high_level_agent": self.high_level_action_space,
-                "low_level_agent": self.low_level_action_space
+                "high_level_policy": self.high_level_action_space,
+                "low_level_policy": self.low_level_action_space
             })
         self._obs_space_in_preferred_format = True # This means that the observation space is a dictionary with the agent_id as key
         self.observation_space = Dict({
-                "high_level_agent": self.high_level_obs_space,
-                "low_level_agent": self.low_level_obs_space
+                "high_level_policy": self.high_level_obs_space,
+                "low_level_policy": self.low_level_obs_space
             })
 
     def step(self, action):
+        # if "high_level_policy" in action:
+        #   print(f"High-level action: {action}")
+        #   self.high_level_action_space.contains(action), f"Invalid high-level action: {action}"
+        # else:
+        #   print(f"Low-level action: {action}")
+        #   assert self.low_level_action_space.contains(action), f"Invalid low-level action: {action}"
+
         return self.env.step(action)
 
     def reset(self, seed=None, options=None):
@@ -537,6 +570,7 @@ class PuzzleGymEnv(MultiAgentEnv):
 
 if __name__ == "__main__":
     # Initialize the puzzle environment
+    # Piece ID is taken from the index of the list of pieces - 0, 1, 2, 3 - TODO: need to change and add an ID dimension
     sides_list = [
         [5, 6, 7, 8],
         [7, 8, 5, 6],
@@ -557,10 +591,10 @@ if __name__ == "__main__":
 
     for _ in range(num_steps):
         action = env.action_space.sample()       # action is to connect available pieces and sides with the target side
-        target_piece_n_side  = action['high_level_agent']
+        target_piece_n_side  = action['high_level_policy']
         target_piece = target_piece_n_side // num_sides  # Calculate target piece ID
         target_side  = target_piece_n_side % num_sides   # Calculate side index of the target piece
-        active_piece, active_side = action['low_level_agent']
+        active_piece, active_side = action['low_level_policy']
         print(f"Action: active_piece: {active_piece}, side:{active_side}, target_piece: {target_piece}, side:{target_side}")
 
         obs, reward, terminated, truncated, info = env.step(action)  # the observation is the current state of the puzzle and available pieces

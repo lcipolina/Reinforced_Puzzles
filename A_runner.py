@@ -5,9 +5,10 @@
 
 # Tengo que corroborar que este usando bien cada political model - que no se este usando el mismo para todos los agentes
 
-# Cambiar el matching de los lados: "Connected piece 2 side 1 to piece 0 side 1" --> ponerlo con los original side numbers
 
-# EN QUE ESTABA: implementar esto: update_available_connections_n_sides y ver el tema mascaras
+#  implementar esto: update_available_connections_n_sides y ver el tema mascaras
+
+# EN QUE ESTABA: Ver Policy at play!
 
 
 import os, sys
@@ -37,18 +38,18 @@ class Runner:
             train_result = train_policy(self.setup_dict, self.custom_env_config).train()
             # Reads 'output.xlsx' and generates training graphs avg and rewards per seed - reward, loss, entropy
             # graph_reward_n_others()
-            return train_result['checkpoint_path'] # used later for inference
+            return train_result['checkpoint_path']      # used later for inference
 
 
         # EVALUATE WITH ONE CHECKPOINT ====================================
         def evaluate(self, checkpoint_path=None, train_path= None, test_path = None):
             ''' Reads from checkpoint and plays policyin env.'''
 
-            if checkpoint_path is None:
-               checkpoint_path = get_checkpoint_from_json_file(directory = os.path.join(CURRENT_DIR, 'results'), name_prefix = 'best_checkpoint', extension = '.json') # Get the latest checkpoint file in the directory by time stamp
+            if checkpoint_path is None:                  # Get the latest checkpoint file in the directory by time stamp
+               checkpoint_path = get_checkpoint_from_json_file(directory = os.path.join(CURRENT_DIR, 'results'), name_prefix = 'best_checkpoint', extension = '.json')
 
             num_eps_to_play = 1
-            self.custom_env_config["DEBUG"] = True # Print env at play
+            self.custom_env_config["DEBUG"] = True       # Print env at play
             eval_cls = Inference(checkpoint_path, self.custom_env_config, self.setup_dict, num_eps = num_eps_to_play).play_env()             # Initialize the Inference class with the checkpoint path and custom environment configuration
             #eval_cls.run_inference_and_generate_plots(distance_lst_input=test_distance_lst, max_coalitions=max_coalitions_to_plot) # Run inference on the env and generate coalition plots and 'response_data'
 
@@ -61,7 +62,6 @@ def run_runner(setup_dict = None, env_config_dict = None, train_n_eval = True, t
     '''
     Run RLLIB's trainer and inference classes
     '''
-
     runner = Runner(setup_dict, env_config_dict)
 
     if train_n_eval:
@@ -83,33 +83,30 @@ def run_runner(setup_dict = None, env_config_dict = None, train_n_eval = True, t
     return 0
 
 
-
-
 # ==============================================================================================================
 # MAIN
 # ======================================================================================================================
 
 if __name__ == '__main__':
 
-        # For SLURM these need to be inside a function
-
+        # Side idx need to match the action space
         sides_list = [
-        [5, 6, 7, 8],
-        [7, 8, 5, 6],
-        [5, 6, 7, 8],
-        [7, 8, 5, 6]
-        ]
+                [0, 1, 2, 3],
+                [2, 3, 0, 1],
+                [0, 1, 2, 3],
+                [2, 3, 0, 1]
+                ]
         env_config_dict = {
                         'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                         'num_pieces': len(sides_list),
-                        'grid_size': 5,        # 10x10 grid (100 pieces in total)
-                        "DEBUG": False,         # Whether to print debug info
+                        'grid_size': 5,         # 10x10 grid (100 pieces in total)
+                        "DEBUG": True,         # Whether to print debug info
                         }
 
-        setup_dict = { 'training_iterations': 2,
+        setup_dict = { 'training_iterations': 40,
                         'train_batch_size': 600,
                         'seeds_lst': [42],
-                        'cpu_nodes': 7,
+                        'cpu_nodes': 1,  # 35 for Alpha
                         'experiment_name': 'puzzle',
                         }
 

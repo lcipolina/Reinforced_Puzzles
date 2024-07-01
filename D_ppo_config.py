@@ -99,12 +99,12 @@ def policy_mapping_fn(agent_id, episode, worker, **kwargs):
         return "high_level_policy"
 #_____________________________________________________________________________
 def get_env_spaces(env_class, custom_env_config):
-    # Initialize the environment with the required dictionary
+    # Pass the space corresponding to each Policy.
     env =  env_class(custom_env_config)
-    high_obs_space = env.observation_space["high_level_agent"]
-    high_action_space = env.action_space["high_level_agent"]
-    low_obs_space = env.observation_space["low_level_agent"]
-    low_action_space = env.action_space["low_level_agent"]
+    high_obs_space = env.observation_space["high_level_policy"]
+    high_action_space = env.action_space["high_level_policy"]
+    low_obs_space = env.observation_space["low_level_policy"]
+    low_action_space = env.action_space["low_level_policy"]
     env.close()  # Ensure you clean up the environment instance
     return high_obs_space, high_action_space, low_obs_space, low_action_space
 
