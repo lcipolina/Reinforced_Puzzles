@@ -9,14 +9,9 @@
 #  implementar esto: update_available_connections_n_sides y ver el tema mascaras
 
 # EN QUE ESTABA: Ver Policy at play!
-# Encargarme de este error:
-#     raise ValueError(
-# ValueError: Registry value for rllib_model/custom_model_high doesn't exist.
+
 
 import os, sys
-
-os.environ['PYTHONWARNINGS'] = 'ignore::DeprecationWarning'
-
 CURRENT_DIR  = os.path.dirname(os.path.realpath(__file__)) # Get the current script directory path
 parent_dir   = os.path.dirname(CURRENT_DIR)                # Get the parent directory (one level up)
 sys.path.insert(0, parent_dir)                             # Add parent directory to sys.path

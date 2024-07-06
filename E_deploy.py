@@ -2,7 +2,7 @@
    Two policies
 '''
 
-import torch, socket, os
+import logging, os
 import datetime
 import numpy as np
 import pandas as pd
@@ -21,8 +21,11 @@ from D_ppo_config import get_marl_hrl_trainer_config  as get_trainer_config    #
 # Register the custom models
 from ray.rllib.models import ModelCatalog
 from C_policy import CustomModelHigh, CustomModelLow
-ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
-ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
+
+
+os.environ['PYTHONWARNINGS'] = 'ignore::DeprecationWarning'
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 current_dir = os.path.dirname(os.path.realpath(__file__)) # Get the current script directory path
 
@@ -41,7 +44,8 @@ class Inference:
         self.env               = Env(custom_env_config)
         register_env("custom_env", lambda env_ctx: self.env)                         # the register_env needs a callable/iterable
         ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)  # Register the custom model - used by D_ppo_config.py
-
+        ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
+        ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
 
     #==================================================================
     # Step 1 - Run the environment and collect responses
@@ -52,7 +56,9 @@ class Inference:
         '''Play the environment with the trained model and generate responses and final coalitions
         '''
         if ray.is_initialized(): ray.shutdown()
-        ray.init(local_mode=True, include_dashboard=False, ignore_reinit_error=True, log_to_driver=False)
+        ray.init(local_mode=True, include_dashboard=False, ignore_reinit_error=True, log_to_driver=False,logging_level="info",runtime_env={
+    "env_vars": {"PYTHONWARNINGS": "ignore"}
+})
 
 
         # Convert checkpoint info to algorithm state
