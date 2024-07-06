@@ -18,7 +18,11 @@ from Z_utils import my_print
 from B_env_hrl import PuzzleGymEnv as Env                         # Custom environment
 from C_policy import CustomMaskedModel as CustomTorchModel                     # Custom model with masks
 from D_ppo_config import get_marl_hrl_trainer_config  as get_trainer_config    # Configuration for the training
-
+# Register the custom models
+from ray.rllib.models import ModelCatalog
+from C_policy import CustomModelHigh, CustomModelLow
+ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
+ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
 
 current_dir = os.path.dirname(os.path.realpath(__file__)) # Get the current script directory path
 
@@ -33,7 +37,7 @@ class Inference:
         self.checkpoint_path   = checkpoint_path
         self.custom_env_config = custom_env_config
         self.setup_dict        = setup_dict
-        self.num_episodes_during_inference = num_eps                     # How many episodes to run during inference
+        self.num_eps_inference = num_eps                     # How many episodes to run at inference
         self.env               = Env(custom_env_config)
         register_env("custom_env", lambda env_ctx: self.env)                         # the register_env needs a callable/iterable
         ModelCatalog.register_custom_model("masked_action_model", CustomTorchModel)  # Register the custom model - used by D_ppo_config.py
@@ -73,7 +77,7 @@ class Inference:
 
         num_episodes   = 0
         episode_reward = 0.0
-        while num_episodes < self.num_episodes_during_inference:
+        while num_episodes < self.num_eps_inference:
 
             # Compute MARL action
             agent_id = list(obs_dict.keys())[0] #string

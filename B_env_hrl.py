@@ -482,10 +482,10 @@ class PuzzleEnvironment:
         '''
 
         if "high_level_policy" in action_dict:
-          print(f"High-level action: {action_dict}")
+          my_print(f"High-level action: {action_dict}", self.DEBUG)
           return self._high_level_step(action_dict["high_level_policy"])
         else:
-          print(f"Low-level action: {action_dict}")
+          my_print(f"Low-level action: {action_dict}", self.DEBUG)
           return self._low_level_step(action_dict["low_level_policy"])
 
 

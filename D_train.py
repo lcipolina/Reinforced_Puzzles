@@ -18,7 +18,7 @@ parent_dir          = os.path.dirname(current_script_dir)         # Get the pare
 sys.path.insert(0, parent_dir)                                    # Add parent directory to sys.path
 
 from B_env_hrl import PuzzleGymEnv as Env                         # Custom environment
-from D_ppo_config import get_marl_hrl_trainer_config  as get_trainer_config       # Tranier config for single agent PPO
+from D_ppo_config import get_marl_hrl_trainer_config as get_trainer_config       # Tranier config for single agent PPO
 
 
 output_dir = os.path.expanduser("~/ray_results") # Default output directory
@@ -94,7 +94,7 @@ class RunRay:
         result_grid      = tuner.fit() #train the model
         best_result_grid = result_grid.get_best_result(metric="episode_reward_mean", mode="max")
 
-        print("BEST RESULT:")
+        print("\n=== BEST RESULT ===\n")
         print(f" Reward_max: {best_result_grid.metrics['sampler_results']['episode_reward_max']}")
         print(f" Reward_mean: {best_result_grid.metrics['sampler_results']['episode_reward_mean']}")
 

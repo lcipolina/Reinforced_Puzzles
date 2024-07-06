@@ -10,6 +10,12 @@ from ray.rllib.policy import Policy                                   #for callb
 from ray.rllib.env import BaseEnv                                     # for callbacks
 from ray.rllib.algorithms.callbacks import DefaultCallbacks           # for callbacks
 
+# Register the custom models
+from ray.rllib.models import ModelCatalog
+from C_policy import CustomModelHigh, CustomModelLow
+ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
+ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
+
 
 
 #------------------------------------------------------------------------------------------------
@@ -25,7 +31,7 @@ def get_sarl_trainer_config(env_class,
     '''Returns the configuration for the PPO trainer
        Args:
               env_class: The environment class (NOT the generator! as it registers the env)
-       OBS: Custom model and action distribution have been registered in their defn scripts.
+       OBS: Custom model and action distribution have been registered in their defn scripts ("C_Policy").
     '''
 
     _train_batch_size = setup_dict['train_batch_size']
@@ -124,11 +130,11 @@ def get_marl_hrl_trainer_config(env_class,
 
     trainer_config = (
             PPOConfig()
-            .environment(env=env_class, # if we pass it like this, we don't need to register the env
+            .environment(env=env_class,                    # if we pass it like this, we don't need to register the env
                          env_config= custom_env_config)
             .training(train_batch_size=_train_batch_size,  # Number of samples that are collected before a gradient step is taken.
-                      sgd_minibatch_size=64,  # These are the number of samples that are used for each SGD iteration.
-                       # entropy_coeff=0.2,  #it doesnt seem to change much
+                      sgd_minibatch_size=64,               # These are the number of samples that are used for each SGD iteration.
+                       # entropy_coeff=0.2,                # it doesnt seem to change much
                        # kl_coeff=0.01,
                       model = {"_disable_preprocessor_api": False})  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
             .rollouts(num_rollout_workers=num_cpus, num_envs_per_env_runner=1, rollout_fragment_length='auto')

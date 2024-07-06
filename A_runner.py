@@ -9,7 +9,9 @@
 #  implementar esto: update_available_connections_n_sides y ver el tema mascaras
 
 # EN QUE ESTABA: Ver Policy at play!
-
+# Encargarme de este error:
+#     raise ValueError(
+# ValueError: Registry value for rllib_model/custom_model_high doesn't exist.
 
 import os, sys
 
@@ -70,6 +72,7 @@ def run_runner(setup_dict = None, env_config_dict = None, train_n_eval = True, t
 
         # EVALUATE
         # NOTE: The 'compute_action' exploration = False gives better results than True
+        print("\n=== ENTERING EVALUATION ===\n")
         runner.evaluate(checkpoint_path = checkpoint_path_trained,
                         train_path      = train_path,
                         test_path       = test_path)
@@ -100,7 +103,7 @@ if __name__ == '__main__':
                         'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                         'num_pieces': len(sides_list),
                         'grid_size': 5,         # 10x10 grid (100 pieces in total)
-                        "DEBUG": True,         # Whether to print debug info
+                        "DEBUG": False,         # Whether to print debug info
                         }
 
         setup_dict = { 'training_iterations': 40,
@@ -112,12 +115,12 @@ if __name__ == '__main__':
 
 
         # TRAIN n Inference
-        train_n_eval = True
+        train_n_eval = False
         checkpoint_path_trained = None
         train_path, test_path = None, None
 
         # EVAL
-        train_n_eval = False # inference only
+        #train_n_eval = False # inference only
         # checkpoint_path_trained = \
         # "/Users/lucia/ray_results/subadditive_test/PPO_DynamicCoalitionsEnv_4ec75_00000_0_2024-05-26_15-53-18/checkpoint_000004"
         # =====================
