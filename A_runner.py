@@ -8,7 +8,7 @@
 
 #  implementar esto: update_available_connections_n_sides y ver el tema mascaras
 
-# EN QUE ESTABA: Ver Policy at play!
+# EN QUE ESTABA: Implementar el scratch3.py Ver Policy at play! y ver si se esta usando bien el modelo de politica
 
 
 import os, sys
