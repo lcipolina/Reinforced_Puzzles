@@ -106,7 +106,7 @@ class RunRay:
     def train(self):
         ''' Calls Ray to train the model  '''
         if ray.is_initialized(): ray.shutdown()
-        ray.init(ignore_reinit_error=True,local_mode=True)
+        ray.init(ignore_reinit_error=True,local_mode=False)
 
         seeds_lst  = self.setup_dict['seeds_lst']
         for _seed in seeds_lst:

@@ -77,15 +77,15 @@ class Inference:
 
             # Compute MARL action
             agent_id = list(obs_dict.keys())[0] #string
-            policy_agent = "policy" + str(agent_id)
-            action = algo.compute_single_action(observation=obs_dict, explore=False, policy_id=agent_id) # Pre-process and Flattens the obs inside
-            obs_dict, reward, terminated, _, _ = self.env.step(action)
+            #action_dict = algo.compute_actions(obs_dict,policy_id=agent_id, explore=False) #better for multi-agent. Takes a dict. Doesn't flatten
+            action = algo.compute_single_action(observation=obs_dict[agent_id], explore=False, policy_id=agent_id) # Pre-process and Flattens the obs inside.#receives a single obs, without ID
+            obs_dict, reward, terminated, _, _ = self.env.step({agent_id:action})
             my_print(f"Reward: {reward}, Done: {terminated}",DEBUG=True)
-            episode_reward += reward
+            episode_reward += reward[agent_id]
 
            # self.env.render()          # Convert current puzzle into string for visualization
 
-            if terminated:
+            if terminated['__all__']:
                 my_print("The puzzle has been solved or the episode is over!", DEBUG = True)
                 my_print(f"Episode done: Total reward = {episode_reward}", DEBUG=True)
                 obs, _ = self.env.reset()
@@ -165,7 +165,7 @@ if __name__=='__main__':
                  'batch_size'    : 1000 # for the CV learning - one update per batch size
                 }
 
-    setup_dict = {'num_cpus':7}
+    setup_dict = {'num_cpus':1}
 
     # output_dir = setup!
    # cls = Inference(output_dir, custom_env_config, setup_dict, num_eps = 1)

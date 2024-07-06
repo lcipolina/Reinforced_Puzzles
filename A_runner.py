@@ -117,7 +117,7 @@ if __name__ == '__main__':
         train_path, test_path = None, None
 
         # EVAL
-        #train_n_eval = False # inference only
+        train_n_eval = False # inference only
         # checkpoint_path_trained = \
         # "/Users/lucia/ray_results/subadditive_test/PPO_DynamicCoalitionsEnv_4ec75_00000_0_2024-05-26_15-53-18/checkpoint_000004"
         # =====================

@@ -61,8 +61,8 @@ class Piece:
 class PuzzleEnvironment:
     ''' A puzzle environment where agents must connect pieces together to form a complete puzzle.'''
     def __init__(self, config=None):
-        self.agents = {"high_level_policy", "low_level_policy"}                    # Needed by the Policy dicts
-        self._agent_ids       = set(self.agents)                                 # Needed by Policy and by terminateds_dict
+        self.agents         = {"high_level_policy", "low_level_policy"}          # Agent IDs - Needed by the Policy dicts
+        self._agent_ids     = set(self.agents)                                   # Needed by Policy and by terminateds_dict
         self.sides          = config.get("sides", [[5, 6, 7, 8]])                # List of Lists -  Sides are labeled to be different from the keynumbers: "1" for available, etc.
         self.num_pieces     = config.get("num_pieces", 4)                        # Number of pieces in the puzzle
         self.num_sides      = len(self.sides)
@@ -302,8 +302,8 @@ class PuzzleEnvironment:
         #TODO: think about the mask - #TODO: check if the mask is correct
         mask_active_piece, mask_target_piece_n_side = self._get_action_mask()  # Mask for: Valid active pieces, target pieces, and the target pieces' sides.
 
-        print("self.current_puzzle:",self.current_puzzle)
-        print("self.available_pieces_sides:",self.available_pieces_sides)
+        #print("self.current_puzzle:",self.current_puzzle)
+        #print("self.available_pieces_sides:",self.available_pieces_sides)
 
         if agent_id == "high_level_policy":  # Selects the target piece and side
             observation = {
@@ -513,12 +513,12 @@ class PuzzleGymEnv(MultiAgentEnv):
         #  Low level - select active piece and side to connect to (side mask depends on the target piece)
         self.low_level_action_space = MultiDiscrete([
             self.env.num_pieces,                       # active_piece_id
-            self.env.num_sides                       # side_index. The INDEX of the side, not the actual value.
+            self.env.num_sides                         # side_index. The INDEX of the side, not the actual value.
         ])
         # High level - select target piece and side: (piece_id, side_index)
         self.high_level_obs_space = Dict({
-                   'current_puzzle'         : Box(low=-1, high=np.inf, shape=(self.env.grid_size, self.env.grid_size)),                        # 2x2 grid for a 4-piece puzzle
-                   'available_pieces_sides' : Box(low=-1, high=np.inf, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
+                   'current_puzzle'         : Box(low=-1, high=100, shape=(self.env.grid_size, self.env.grid_size)),                        # 2x2 grid for a 4-piece puzzle
+                   'available_pieces_sides' : Box(low=-1, high=100, shape=(self.env.num_pieces, self.env.num_sides + 1), dtype=np.int8),    # Availability of pieces and sides. Columns are the side values, and the last column indicates the availability of the piece
                    'available_connections'  : Box(low=-1, high=1, shape=(self.env.num_pieces * self.env.num_sides,), dtype=np.int8),           # Availability of connections
                    'mask_target_side_index' : Box(low=0, high=1, shape=(self.env.num_pieces * self.env.num_sides, ), dtype=np.uint8),          # Mask for selecting the target piece and side in 2D - If the piece is placed and has at least one available side
                 })
@@ -544,13 +544,6 @@ class PuzzleGymEnv(MultiAgentEnv):
             })
 
     def step(self, action):
-        # if "high_level_policy" in action:
-        #   print(f"High-level action: {action}")
-        #   self.high_level_action_space.contains(action), f"Invalid high-level action: {action}"
-        # else:
-        #   print(f"Low-level action: {action}")
-        #   assert self.low_level_action_space.contains(action), f"Invalid low-level action: {action}"
-
         return self.env.step(action)
 
     def reset(self, seed=None, options=None):
