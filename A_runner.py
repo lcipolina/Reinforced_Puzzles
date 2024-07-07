@@ -8,7 +8,7 @@
 
 #  implementar esto: update_available_connections_n_sides y ver el tema mascaras
 
-# EN QUE ESTABA: Implementar el scratch3.py Ver Policy at play! y ver si se esta usando bien el modelo de politica
+# EN QUE ESTABA:  Ver Policy at play! y ver si se esta usando bien el modelo de politica
 
 
 import os, sys
@@ -55,30 +55,26 @@ class Runner:
 # CONFIGS
 ##################################################
 
-def run_runner(setup_dict = None, env_config_dict = None, train_n_eval = True, train_path = None,test_path  = None, checkpoint_path_trained = None):
+def run_runner(setup_dict=None, env_config_dict=None, train_n_eval=True, train_path=None, test_path=None, checkpoint_path_trained=None):
     '''
     Run RLLIB's trainer and inference classes
     '''
     runner = Runner(setup_dict, env_config_dict)
 
-    if train_n_eval:
-        # TRAIN
-        checkpoint_path_trained = runner.train(train_path = train_path, test_path =test_path)
-
-        # EVALUATE
-        # NOTE: The 'compute_action' exploration = False gives better results than True
+    def evaluate(checkpoint_path):
         print("\n=== ENTERING EVALUATION ===\n")
-        runner.evaluate(checkpoint_path = checkpoint_path_trained,
-                        train_path      = train_path,
-                        test_path       = test_path)
+        runner.evaluate(checkpoint_path=checkpoint_path,
+                        train_path=train_path,
+                        test_path=test_path)
 
-    else: # Evaluate only
-        checkpoint_path_evaluate = None  # It will take last checkpoint on file
-        runner.evaluate(checkpoint_path = checkpoint_path_evaluate,
-                        train_path      = train_path,
-                        test_path       = test_path
-                        )
+    if train_n_eval:
+        checkpoint_path_trained = runner.train(train_path=train_path, test_path=test_path) # Train
+        evaluate(checkpoint_path_trained) # Evaluate the trained model
+    else:
+        evaluate(None)  # Evaluate only, takes the last checkpoint on file
+
     return 0
+
 
 
 # ==============================================================================================================

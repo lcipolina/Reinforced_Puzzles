@@ -405,7 +405,46 @@ class PuzzleEnvironment:
             return (correct_connections / total_possible_connections) * 10
         return 0
 
+    def find_target_side_label(self, target_piece_n_side):
+        """
+        Finds the label of the target side given its sequence number in the overall list of sides.
+        The goal is to find the exact position of a specific side, referred to as target_piece_n_side,
+        within a larger structure composed of multiple pieces. Each piece has a different number of sides.
 
+        The pieces are arranged in a sequence, and each piece contributes a certain number of sides to the total count.
+        To locate a specific side, you need to understand its position in this sequence.
+
+
+        The function iterates through each piece, counting the number of sides until it reaches
+        the piece that contains the target side. It then calculates the index of the target side
+        within that piece's sides list and returns the side's label.
+
+        Parameters:
+        - target_piece_n_side: The sequence number of the target side across all pieces.
+
+        Returns:
+        - The label of the target side if found, otherwise None.
+
+        The sequence number is 1-based, meaning the first side in the first piece has a sequence
+        number of 1. The calculation of the side's index within its piece takes into account the
+        cumulative count of sides up to the previous piece, subtracting it from the target sequence
+        number to find the local index within the current piece.
+        """
+        cumulative_sides = 0  # Tracks the cumulative count of sides encountered
+
+        for piece in self.pieces_lst:  # Iterate through each piece
+            num_sides_in_piece = len(piece.sides_lst)  # Number of sides in the current piece
+            # Check if the current piece contains the target side
+            if cumulative_sides + num_sides_in_piece >= target_piece_n_side:
+                # Calculate the index of the target side within the current piece
+                side_index_within_piece = target_piece_n_side - cumulative_sides - 1
+                # Access and return the target side label
+                self.target_side_lbl = piece.sides_lst[side_index_within_piece]
+                return self.target_side_lbl
+            cumulative_sides += num_sides_in_piece  # Update the cumulative count of sides
+
+        # If the loop completes without returning, the target side was not found
+        return None
 
     #------------------------------------------------------------------------------------------------
     # High-level and low-level step
@@ -418,8 +457,9 @@ class PuzzleEnvironment:
         # Convert from side Idx to side label. Rationale: Policy selects idx (0,..,3) but sides have lables that need to match. Ex: 5,6,7,8)
         self.target_piece_id = target_piece_n_side // self.num_sides            # Calculate target piece ID
         target_piece_obj = next((piece for piece in self.pieces_lst if piece.id == self.target_piece_id), None)   # From piece_idx to piece_object
-        self.target_side_id = target_piece_n_side % self.num_sides              # Calculate side index of the target piece - used for the piece placement in the puzzle - The 'reminder' is a trick to cycle through a *fixed* range of numbers from 0 to (num_sides -1)
-        self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id] # This is the one used for matching checks
+        #self.target_side_id = target_piece_n_side % self.num_sides              # Calculate side index of the target piece - used for the piece placement in the puzzle - The 'reminder' is a trick to cycle through a *fixed* range of numbers from 0 to (num_sides -1)
+        #self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id] # This is the one used for matching checks
+        self.target_side_lbl = self.find_target_side_label(target_piece_n_side)  # For when pieces have different nbr of sides
         obs = {"low_level_policy": self._get_observation("low_level_policy")}   # Observation for the next agent
         rew = {"high_level_policy": 0}                                          # TODO: this might need to be enhanced later
         self.truncated_dict = {"__all__": False}                                # High-level agent never terminates a game
