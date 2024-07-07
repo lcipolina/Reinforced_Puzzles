@@ -9,7 +9,6 @@ import gymnasium as gym
 from gymnasium.spaces import Box, MultiDiscrete, Dict, Discrete
 from ray.rllib.env import MultiAgentEnv
 
-
 from Z_utils import my_print
 
 
@@ -29,7 +28,6 @@ class Piece:
         num_rotations = degrees // (360 // num_sides)
         self.sides_lst = self.sides_lst[-num_rotations:] + self.sides_lst[:-num_rotations]
         self.available_sides = self.available_sides[-num_rotations:] + self.available_sides[:-num_rotations]
-
 
     def connect_side(self, side_index):
         # Mark a side as no longer available once it's connected. Returns True if the side was available
@@ -270,7 +268,7 @@ class PuzzleEnvironment:
 
         # Initialize masks
         mask_active_piece = np.zeros(num_pieces, dtype=np.uint8)                        # (Desideratum 2) Only available pieces can be selected as current piece
-        mask_target_piece_n_side = np.zeros((num_pieces, num_sides), dtype=np.uint8)  # 2D mask - available target piece and corresp side of the target piece  (Desideratum 4 and 5)
+        mask_target_piece_n_side = np.zeros((num_pieces, num_sides), dtype=np.uint8)    # 2D mask - available target piece and corresp side of the target piece  (Desideratum 4 and 5)
 
         # Extract availability information
         piece_availability = self.available_pieces_sides[:, -1]             # List marking whether pieces are available or not - Last column indicates piece availability (Desideratum 2, 4, 5)
@@ -278,7 +276,7 @@ class PuzzleEnvironment:
 
         # Determine valid active pieces (Desideratum 2)
         valid_active_pieces = np.where(piece_availability == 1)[0]          # Pieces candidate to be selected as the current piece
-        mask_active_piece[valid_active_pieces] = 1                              # Mark available pieces
+        mask_active_piece[valid_active_pieces] = 1                          # Mark available pieces
 
         # Determine valid target pieces (Desideratum 4 and 5) -  Check if the piece is placed and has at least one available side
         valid_target_pieces = np.where((piece_availability == -1) & (np.any(side_availability != -1, axis=1)))[0]

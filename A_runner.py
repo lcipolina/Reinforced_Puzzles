@@ -9,6 +9,9 @@
 #  implementar esto: update_available_connections_n_sides y ver el tema mascaras
 
 # EN QUE ESTABA:  Ver Policy at play! y ver si se esta usando bien el modelo de politica
+# Ver de implementar scratch2 y scratch3 porque el problema que tengo ahora es con el 'current_puzzle' que no sirve mucho
+# El scratch3 tiene buenas variables para probar - implementarlas en otro env!
+# El scratch2 tiene un buen display!
 
 
 import os, sys

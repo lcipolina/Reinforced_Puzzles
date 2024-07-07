@@ -1,6 +1,7 @@
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
+
 
 class Piece:
     def __init__(self, id, sides):
@@ -38,9 +39,7 @@ class Puzzle(gym.Env):
 
         self.observation_space = spaces.Dict({
             "piece_sides": spaces.Box(low=0, high=max_sides, shape=(num_pieces,), dtype=np.int32),
-            "connections": spaces.Box(low=-1, high=num_pieces, shape=(num_pieces, max_sides, 2), dtype=np.int32),
-            "available_sides": spaces.MultiBinary((num_pieces, max_sides)),
-            "piece_ids": spaces.Box(low=0, high=num_pieces-1, shape=(num_pieces,), dtype=np.int32)
+            "connections": spaces.Box(low=-1, high=num_pieces, shape=(num_pieces, max_sides, 2), dtype=np.int32)
         })
         self.action_space = spaces.Discrete(num_pieces)
 
@@ -60,13 +59,9 @@ class Puzzle(gym.Env):
 
     def get_observation(self):
         piece_sides = [len(piece.sides_lst) for piece in self.pieces.values()]
-        available_sides = [piece.available_sides for piece in self.pieces.values()]
-        piece_ids = [piece.id for piece in self.pieces.values()]
         return {
             "piece_sides": np.array(piece_sides),
-            "connections": self.connections,
-            "available_sides": np.array(available_sides),
-            "piece_ids": np.array(piece_ids)
+            "connections": self.connections
         }
 
     def step(self, action):
@@ -111,5 +106,3 @@ obs = env.get_observation()
 
 print("Piece Sides:", obs["piece_sides"])
 print("Connections:\n", env.display_connections())
-print("Available Sides:\n", obs["available_sides"])
-print("Piece IDs:\n", obs["piece_ids"])
