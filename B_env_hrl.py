@@ -327,7 +327,7 @@ class PuzzleEnvironment:
     #------------------------------------------------------------------------------------------------
     # Action
     #------------------------------------------------------------------------------------------------
-    def process_action(self, action):
+    def process_low_action(self, action):
         '''Process the action for the Low-level agent. Connect the chosen active piece to the target piece and side.
             Checks if the action is valid  - if the two pieces can be connected based on the puzzle's rules.
             If valid action: method returns True  - and the step method assigns rewards. If invalid action: method returns False.
@@ -414,10 +414,14 @@ class PuzzleEnvironment:
         The pieces are arranged in a sequence, and each piece contributes a certain number of sides to the total count.
         To locate a specific side, you need to understand its position in this sequence.
 
-
         The function iterates through each piece, counting the number of sides until it reaches
         the piece that contains the target side. It then calculates the index of the target side
         within that piece's sides list and returns the side's label.
+
+        EXAMPLE: if we receive a number 10. This is interpreted as "the 10th side starting from the first piece".
+        If the first piece has 4 sides, the second piece has 3 sides, and the third piece has 5 sides,
+        the function will return the label of the 2nd side in the 2nd piece.
+
 
         Parameters:
         - target_piece_n_side: The sequence number of the target side across all pieces.
@@ -437,7 +441,7 @@ class PuzzleEnvironment:
             # Check if the current piece contains the target side
             if cumulative_sides + num_sides_in_piece >= target_piece_n_side:
                 # Calculate the index of the target side within the current piece
-                side_index_within_piece = target_piece_n_side - cumulative_sides - 1
+                side_index_within_piece = target_piece_n_side - cumulative_sides # - 1
                 # Access and return the target side label
                 self.target_side_lbl = piece.sides_lst[side_index_within_piece]
                 return self.target_side_lbl
@@ -453,12 +457,12 @@ class PuzzleEnvironment:
         '''Process action: converts idx to lables and returns the observation for the next agent.'''
         target_piece_n_side = action
 
-#TODO: this won't work for different number of sides
         # Convert from side Idx to side label. Rationale: Policy selects idx (0,..,3) but sides have lables that need to match. Ex: 5,6,7,8)
         self.target_piece_id = target_piece_n_side // self.num_sides            # Calculate target piece ID
         target_piece_obj = next((piece for piece in self.pieces_lst if piece.id == self.target_piece_id), None)   # From piece_idx to piece_object
-        #self.target_side_id = target_piece_n_side % self.num_sides              # Calculate side index of the target piece - used for the piece placement in the puzzle - The 'reminder' is a trick to cycle through a *fixed* range of numbers from 0 to (num_sides -1)
-        #self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id] # This is the one used for matching checks
+        self.target_side_id = target_piece_n_side % self.num_sides              # Calculate side index of the target piece - used for the piece placement in the puzzle - The 'remainder' is a trick to cycle through a *fixed* range of numbers from 0 to (num_sides -1)
+        self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id] # This is the one used for matching checks
+        # Doesn't seem to be equivalent
         self.target_side_lbl = self.find_target_side_label(target_piece_n_side)  # For when pieces have different nbr of sides
         obs = {"low_level_policy": self._get_observation("low_level_policy")}   # Observation for the next agent
         rew = {"high_level_policy": 0}                                          # TODO: this might need to be enhanced later
@@ -470,7 +474,7 @@ class PuzzleEnvironment:
     def _low_level_step(self, action):
         '''Low-level agent connects the active piece to the target piece and side.'''
         obs, rew = {}, {}
-        valid_action = self.process_action(action)                               # Process idx to lbl and Check validity and update connections if valid action
+        valid_action = self.process_low_action(action)                               # Process idx to lbl and Check validity and update connections if valid action
         if valid_action:
            reward = self.calculate_reward()
            terminated = self.check_completion()
@@ -526,10 +530,10 @@ class PuzzleEnvironment:
         '''
 
         if "high_level_policy" in action_dict:
-          my_print(f"High-level action: {action_dict}", self.DEBUG)
+         # my_print(f"High-level action: {action_dict}", self.DEBUG) #this is the combined piece_side index
           return self._high_level_step(action_dict["high_level_policy"])
         else:
-          my_print(f"Low-level action: {action_dict}", self.DEBUG)
+        #  my_print(f"Low-level action: {action_dict}", self.DEBUG)  #not very informative this array
           return self._low_level_step(action_dict["low_level_policy"])
 
 
