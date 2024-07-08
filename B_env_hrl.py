@@ -63,7 +63,8 @@ class PuzzleEnvironment:
         self._agent_ids     = set(self.agents)                                   # Needed by Policy and by terminateds_dict
         self.sides          = config.get("sides", [[5, 6, 7, 8]])                # List of Lists -  Sides are labeled to be different from the keynumbers: "1" for available, etc.
         self.num_pieces     = config.get("num_pieces", 4)                        # Number of pieces in the puzzle
-        self.num_sides      = len(self.sides)
+        # TODO: this should be named "max_num_sides"
+        self.num_sides      = max(len(sides) for sides in self.sides) #len(self.sides)
         self.DEBUG          = config.get("DEBUG", False)                         # Whether to print or not
         self.grid_size      = config.get("grid_size", 10)                        # height and width # int(np.sqrt(self.num_pieces))  # Generates 4 pieces with 4 sides
         self.pieces_lst     = Piece._generate_pieces(sides_lst =self.sides)      # Generate pieces, sides and availability
@@ -263,12 +264,10 @@ class PuzzleEnvironment:
            5- Target Pieces Should Have At Least One Side Available (target_side_index).
               This is checked by ensuring that there is at least one available side (np.any(side_availability == 1, axis=1)).
         """
-        num_pieces = len(self.pieces_lst)
-        num_sides  = len(self.sides)
 
         # Initialize masks
-        mask_active_piece = np.zeros(num_pieces, dtype=np.uint8)                        # (Desideratum 2) Only available pieces can be selected as current piece
-        mask_target_piece_n_side = np.zeros((num_pieces, num_sides), dtype=np.uint8)    # 2D mask - available target piece and corresp side of the target piece  (Desideratum 4 and 5)
+        mask_active_piece = np.zeros(self.num_pieces, dtype=np.uint8)                        # (Desideratum 2) Only available pieces can be selected as current piece
+        mask_target_piece_n_side = np.zeros((self.num_pieces, self.num_sides), dtype=np.uint8)    # 2D mask - available target piece and corresp side of the target piece  (Desideratum 4 and 5)
 
         # Extract availability information
         piece_availability = self.available_pieces_sides[:, -1]             # List marking whether pieces are available or not - Last column indicates piece availability (Desideratum 2, 4, 5)
