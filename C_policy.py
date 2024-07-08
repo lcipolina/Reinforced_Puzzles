@@ -85,6 +85,9 @@ class CustomMaskedModel(TorchModelV2, nn.Module):
         return value.squeeze(-1)  # Remove any unnecessary dimensions to match [batch_size]
 
 
+##########################################################
+# Policies for Hierarchical RL - High and Low Level Agents
+##########################################################
 
 class CustomModelHigh(TorchModelV2, nn.Module):
     """Custom model for the high-level agent."""
