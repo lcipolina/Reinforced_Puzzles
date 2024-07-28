@@ -10,25 +10,21 @@ from ray import air, tune
 from ray.rllib.utils.typing import ModelConfigDict, TensorType
 from ray.rllib.utils.framework import try_import_torch
 torch, nn = try_import_torch()
-from sigterm_handler import signal_handler, return_state_file_path # Resume after SIGTERM termination
+from sigterm_handler import signal_handler, return_state_file_path          # Resume after SIGTERM termination
 
+current_script_dir  = os.path.dirname(os.path.realpath(__file__))           # Get the current script directory path
+parent_dir          = os.path.dirname(current_script_dir)                   # Get the parent directory (one level up)
+sys.path.insert(0, parent_dir)                                              # Add parent directory to sys.path
 
-current_script_dir  = os.path.dirname(os.path.realpath(__file__)) # Get the current script directory path
-parent_dir          = os.path.dirname(current_script_dir)         # Get the parent directory (one level up)
-sys.path.insert(0, parent_dir)                                    # Add parent directory to sys.path
-
-from B_env_hrl import PuzzleGymEnv as Env                         # Custom environment
-from D_ppo_config import get_marl_hrl_trainer_config as get_trainer_config       # Tranier config for single agent PPO
-
+from B_env_hrl import PuzzleGymEnv as Env                                   # Custom environment
+from D_ppo_config import get_marl_hrl_trainer_config as get_trainer_config  # Trainer config for single agent PPO
 
 output_dir = os.path.expanduser("~/ray_results") # Default output directory
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
 
-
 #*********************************** RUN RAY TRAINER *****************************************************
 class RunRay:
-
 
     def __init__(self, setup_dict,custom_env_config):
         current_dir            = os.path.dirname(os.path.realpath(__file__))
@@ -36,7 +32,6 @@ class RunRay:
         self.setup_dict        = setup_dict
         self.custom_env_config = custom_env_config
         self.experiment_name   = setup_dict.get('experiment_name', 'puzzle')
-
 
     def setup_n_fit(self):
         '''Setup trainer dict and train model

@@ -17,7 +17,6 @@ ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
 ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
 
 
-
 #------------------------------------------------------------------------------------------------
 # Single-agent RL
 #------------------------------------------------------------------------------------------------

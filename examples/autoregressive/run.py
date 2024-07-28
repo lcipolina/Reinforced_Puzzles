@@ -6,6 +6,15 @@ from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.tune.registry import get_trainable_cls
 from ray.tune.logger import pretty_print
 
+
+''' Taken from:
+https://github.com/ray-project/ray/blob/master/rllib/examples/autoregressive_action_dist.py
+SEE THIS TO SEE HOW TO PLAY THE POLICY in the trained env
+
+
+Expect a reward of approx ~ 200 for an num_iters of 200 as well.
+'''
+
 """
 This script implements a custom autoregressive action distribution for a reinforcement learning environment using Ray RLlib.
 
@@ -18,7 +27,7 @@ Code Flow:
    ↓
 4. Context Vector: Used by ActionModel to compute logits.
    ↓
-5. ActionModel: Computes logits for actions a1 and a2 based on the context vector and previous actions.
+5. Computes logits for actions a1 and a2 based on the context vector and previous actions.
    ↓
 6. TorchAutoregressiveCategoricalDistribution: Uses the logits to sample actions a1 and a2|a1.
 
@@ -27,22 +36,14 @@ Classes:
 - ActionModel: Computes logits for the autoregressive actions.
 - TorchAutoregressiveActionModel: Integrates ActionModel into the RLlib framework, providing context encoding and value function computation.
 
-Training Script:
-- Initializes and configures the training process using Ray RLlib.
-- Registers custom models and action distributions.
-- Executes the training loop with the specified environment and algorithm.
 """
-
 
 
 '''
 Actions: (a1, a2) both can take 2 values: 0 or 1.
 Action 'a2' depends on the value of action a1.
-
 Requires a new action distribution and model to handle the autoregressive nature of the actions.
 The action distribution should be able to sample action 'a2' based on the value of action 'a1'.
-The model should be able to predict the value of action 'a2' based on the value of action 'a1'.
-
 '''
 
 
@@ -52,7 +53,7 @@ from autoreg_action_dist import TorchAutoregressiveCategoricalDistribution as To
 
 # Network model for autoregressive actions.
 #from ray.rllib.examples._old_api_stack.models.autoregressive_action_model import TorchAutoregressiveActionModel
-from autoreg_model import TorchAutoregressiveActionModel
+from autoreg_model  import TorchAutoregressiveActionModel
 
 
 # Environment for this example.
@@ -82,7 +83,7 @@ if __name__ == "__main__":
         "binary_autoreg_dist", TorchBinaryAutoregressiveDistribution
     )
 
-    # Generic config
+    # To show how we can train with a generic config (i.e. not PPOConfig)
     config = (
         get_trainable_cls(run_algorithm)
         .get_default_config()

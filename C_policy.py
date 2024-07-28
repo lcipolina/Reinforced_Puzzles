@@ -97,7 +97,7 @@ class CustomModelHigh(TorchModelV2, nn.Module):
 
         #____________________________________________________________________________________________________________________
         # Define the network architecture: i.e. the order of operations in the forward pass and their sizes
-        # - Shared layers and separate output layers for each part of the action space
+        # Define shared layers and separate output layers for each part of the action space
         # Input dimensions are: [batch_size, observation_size]
         # Output dimensions are: [batch_size, number_of_actions]] -  categorical logits for each part of the action space  (or mu, sigma in cts space)
         #____________________________________________________________________________________________________________________
@@ -107,7 +107,7 @@ class CustomModelHigh(TorchModelV2, nn.Module):
         # Define the shared network with custom hidden layer sizes
         self.shared_layers = nn.Sequential(
             nn.Linear(obs_space.shape[0], 128),
-            nn.ReLU(),   # ONLY POSITIVE VALUES!
+            nn.ReLU(),                              # ONLY POSITIVE VALUES!
             nn.Linear(128, 128),
             nn.ReLU()
         )
@@ -147,8 +147,6 @@ class CustomModelHigh(TorchModelV2, nn.Module):
     def value_function(self):
         value = self.value_head(self.shared_layers_output)
         return value.squeeze(-1)  # Remove any unnecessary dimensions to match [batch_size]
-
-
 
 
 class CustomModelLow(TorchModelV2, nn.Module):
