@@ -1,4 +1,10 @@
-''' Only works on Ray 2.7 or later as they had a bug on the MultiDiscrete '''
+''' Only works on Ray 2.7 or later as they had a bug on the MultiDiscrete
+
+    Working well.
+
+    TODO: Only missing part is the visualization at inference time.
+
+'''
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches  #create shapes
@@ -439,6 +445,7 @@ class PuzzleEnvironment:
                 # Calculate the index of the target side within the current piece
                 side_index_within_piece = target_piece_n_side - cumulative_sides # - 1
                 # Access and return the target side label
+                #TODO: check this, gives out of bound!
                 self.target_side_lbl = piece.sides_lst[side_index_within_piece]
                 return self.target_side_lbl
             cumulative_sides += num_sides_in_piece  # Update the cumulative count of sides
@@ -456,9 +463,11 @@ class PuzzleEnvironment:
         # Convert from side Idx to side label. Rationale: Policy selects idx (0,..,3) but sides have lables that need to match. Ex: 5,6,7,8)
         self.target_piece_id = target_piece_n_side // self.num_sides            # Calculate target piece ID
         target_piece_obj = next((piece for piece in self.pieces_lst if piece.id == self.target_piece_id), None)   # From piece_idx to piece_object
-        # self.target_side_id = target_piece_n_side % self.num_sides              # Calculate side index of the target piece - used for the piece placement in the puzzle - The 'remainder' is a trick to cycle through a *fixed* range of numbers from 0 to (num_sides -1)
-        # self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id] # This is the one used for matching checks
-        self.target_side_lbl = self.find_target_side_label(target_piece_n_side)  # For when pieces have different nbr of sides
+        self.target_side_id = target_piece_n_side % self.num_sides              # Calculate side index of the target piece - used for the piece placement in the puzzle - The 'remainder' is a trick to cycle through a *fixed* range of numbers from 0 to (num_sides -1)
+        self.target_side_lbl  = target_piece_obj.sides_lst[self.target_side_id] # This is the one used for matching checks
+
+        # TODO: this one is a good idea but it gives 'out of bound' error in some cases need to rewview why.
+       # self.target_side_lbl = self.find_target_side_label(target_piece_n_side)  # For when pieces have different nbr of sides
         obs = {"low_level_policy": self._get_observation("low_level_policy")}   # Observation for the next agent
         rew = {"high_level_policy": 0}                                          # TODO: this might need to be enhanced later
         self.truncated_dict = {"__all__": False}                                # High-level agent never terminates a game

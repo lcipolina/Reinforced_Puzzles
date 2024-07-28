@@ -3,15 +3,8 @@
 # python hierarchical_training.py > rllib_output.log 2>&1
 
 
-# Tengo que corroborar que este usando bien cada political model - que no se este usando el mismo para todos los agentes
 
 
-#  implementar esto: update_available_connections_n_sides y ver el tema mascaras
-
-# EN QUE ESTABA:  Ver Policy at play! y ver si se esta usando bien el modelo de politica
-# Ver de implementar scratch2 y scratch3 porque el problema que tengo ahora es con el 'current_puzzle' que no sirve mucho
-# El scratch3 tiene buenas variables para probar - implementarlas en otro env!
-# El scratch2 tiene un buen display!
 
 
 import os, sys
@@ -91,17 +84,21 @@ if __name__ == '__main__':
                 [0, 1, 2, 3],
                 [2, 3, 0, 1],
                 [0, 1, 2, 3],
-                [2, 3, 0, 1]
+                [2, 3, 0, 1],
+                [0, 1, 2, 3],
+                [2, 3, 0, 1],
+                [0, 1, 2, 3],
+                [2, 3, 0, 1],
                 ]
         env_config_dict = {
                         'sides': sides_list,  # Sides are labeled to be different from the keynumbers: "1" for available, etc.
                         'num_pieces': len(sides_list),
-                        'grid_size': 5,         # 10x10 grid (100 pieces in total)
+                        'grid_size': 10,         # 10x10 grid (100 pieces in total)
                         "DEBUG": False,         # Whether to print debug info
                         }
 
-        setup_dict = { 'training_iterations': 40,
-                        'train_batch_size': 600,
+        setup_dict = { 'training_iterations': 100,
+                        'train_batch_size': 1000,
                         'seeds_lst': [42],
                         'cpu_nodes': 1,  # 35 for Alpha
                         'experiment_name': 'puzzle',
@@ -109,7 +106,7 @@ if __name__ == '__main__':
 
 
         # TRAIN n Inference
-        train_n_eval = False
+        train_n_eval = True
         checkpoint_path_trained = None
         train_path, test_path = None, None
 

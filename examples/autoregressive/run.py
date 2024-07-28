@@ -6,9 +6,42 @@ from ray.rllib.utils.test_utils import check_learning_achieved
 from ray.tune.registry import get_trainable_cls
 from ray.tune.logger import pretty_print
 
+"""
+This script implements a custom autoregressive action distribution for a reinforcement learning environment using Ray RLlib.
+
+Code Flow:
+1. Environment: Provides observations.
+   ↓
+2. Observation: Passed to TorchAutoregressiveActionModel.
+   ↓
+3. TorchAutoregressiveActionModel: Encodes observations into a context vector.
+   ↓
+4. Context Vector: Used by ActionModel to compute logits.
+   ↓
+5. ActionModel: Computes logits for actions a1 and a2 based on the context vector and previous actions.
+   ↓
+6. TorchAutoregressiveCategoricalDistribution: Uses the logits to sample actions a1 and a2|a1.
+
+Classes:
+- TorchAutoregressiveCategoricalDistribution: Handles autoregressive action sampling and log probability calculations.
+- ActionModel: Computes logits for the autoregressive actions.
+- TorchAutoregressiveActionModel: Integrates ActionModel into the RLlib framework, providing context encoding and value function computation.
+
+Training Script:
+- Initializes and configures the training process using Ray RLlib.
+- Registers custom models and action distributions.
+- Executes the training loop with the specified environment and algorithm.
+"""
+
+
+
 '''
 Actions: (a1, a2) both can take 2 values: 0 or 1.
 Action 'a2' depends on the value of action a1.
+
+Requires a new action distribution and model to handle the autoregressive nature of the actions.
+The action distribution should be able to sample action 'a2' based on the value of action 'a1'.
+The model should be able to predict the value of action 'a2' based on the value of action 'a1'.
 
 '''
 
@@ -41,7 +74,7 @@ if __name__ == "__main__":
 
     ray.init(num_cpus=num_cpus or None, local_mode=local_mode)
 
-    # Register and configure autoregressive action model and dist
+    # Register and configure autoregressive action model and distribution
     ModelCatalog.register_custom_model(
         "autoregressive_model", TorchAutoregressiveActionModel
     )
