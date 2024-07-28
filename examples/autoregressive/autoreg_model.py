@@ -30,10 +30,11 @@ class TorchAutoregressiveActionModel(TorchModelV2, nn.Module):
         # Number of discrete actions
         self.num_actions = action_space[0].n
 
+        ''' ACA HAY UN ERROR'''
         # Shared context layers - produce a feature layer encoding the observations
         self.context_layer = SlimFC(
-            in_size=obs_space.shape[0],  # Ensure this matches the observation space size
-            out_size=num_outputs,
+            in_size= 32, # This doesn't work as obs come in batches: obs_space.shape[0],  # Ensure this matches the observation space size
+            out_size=2, # This gives nonsense: num_outputs,
             initializer=normc_init_torch(1.0),
             activation_fn=nn.Tanh,
         )

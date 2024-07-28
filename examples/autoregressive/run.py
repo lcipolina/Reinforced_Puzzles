@@ -7,6 +7,20 @@ from ray.tune.registry import get_trainable_cls
 from ray.tune.logger import pretty_print
 
 
+''''
+EN LO QUE ESTABA:
+Esto mas o menos funciona. Da un error de matmult pero no importa.
+Lo importante es que hay un modelo con un FWD que puede recibir masks
+y un custom action que corre bien con este custom model
+
+EN EL CASO DE QUE NO FUNCIONEN: lo que esta en el SCRATCH anda bien. Pero lo hace a dos pasos
+Y lo que esta en "prior" tambien anda pero tiene dos clases que complica.
+
+Mirar bien el custom action distrib y compararlo con el "prior" que es lo que viene de RLLIB
+
+'''
+
+
 ''' Taken from:
 https://github.com/ray-project/ray/blob/master/rllib/examples/autoregressive_action_dist.py
 SEE THIS TO SEE HOW TO PLAY THE POLICY in the trained env

@@ -129,6 +129,7 @@ class CombinedAutoregressiveActionModel(TorchModelV2, nn.Module):
             inf_mask = torch.clamp(torch.log(mask), min=-1e10)
             a2_logits += inf_mask
 
+
         return a1_logits, a2_logits
 
     def value_function(self):
