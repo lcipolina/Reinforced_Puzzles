@@ -76,16 +76,16 @@ from env import CorrelatedActionsEnv
 
 if __name__ == "__main__":
     # Default values
-    run_algorithm = "PPO"
-    framework = "torch"
-    num_cpus = 0
-    as_test = False
-    stop_iters = 200
+    run_algorithm  = "PPO"
+    framework      = "torch"
+    num_cpus       = 0
+    as_test        = False
+    stop_iters     = 200
     stop_timesteps = 100000
-    stop_reward = 200.0
-    no_tune = False  # If True, run manual training loop without Tune
-    local_mode = True
-    no_autoreg = False
+    stop_reward    = 200.0
+    no_tune        = False  # If True, run manual training loop without Tune
+    local_mode     = True
+    no_autoreg     = False
 
     ray.init(num_cpus=num_cpus or None, local_mode=local_mode)
 
@@ -125,6 +125,7 @@ if __name__ == "__main__":
     }
 
     # Manual training loop without Tune
+    '''
     if no_tune:
         if run_algorithm != "PPO":
             raise ValueError("Only support --run PPO with --no-tune.")
@@ -156,12 +157,13 @@ if __name__ == "__main__":
 
     # Run with Tune for automatic environment and algorithm creation
     else:
-        tuner = tune.Tuner(
+    '''
+    tuner = tune.Tuner(
             run_algorithm, run_config=air.RunConfig(stop=stop, verbose=2), param_space=config
         )
-        results = tuner.fit()
+    results = tuner.fit()
 
-        if as_test:
+    if as_test:
             print("Checking if learning goals were achieved")
             check_learning_achieved(results, stop_reward)
 
