@@ -1,4 +1,6 @@
-''' Train a custom env with custom model and action masking on Ray 2.12'''
+''' Train a custom env with custom model and action masking on Ray 2.12
+    Calls the Policy config dict from D_ppo_config.py which in turn calls the custom model from C_policy.py
+'''
 
 
 import os, sys, json, re
@@ -19,7 +21,7 @@ sys.path.insert(0, parent_dir)                                              # Ad
 from B_env_hrl import PuzzleGymEnv as Env                                   # Custom environment
 from D_ppo_config import get_marl_hrl_trainer_config as get_trainer_config  # Trainer config for single agent PPO
 
-output_dir = os.path.expanduser("~/ray_results") # Default output directory
+output_dir = os.path.expanduser("~/ray_results")                            # Default output directory
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
 
@@ -40,13 +42,11 @@ class RunRay:
         #_____________________________________________________________________________________________
         # Setup Config
         #_____________________________________________________________________________________________
-
         train_iteration   = self.setup_dict['training_iterations']
         lr_start,lr_end,lr_time = 2.5e-4,  2.5e-5, 50 * 1000000 #embelishments of the lr's
 
-        # Get the trainer with the base configuration  - #OBS: no need to register Env anymore, as it is passed on the trainer config!
-        trainer_config = get_trainer_config(Env, self.custom_env_config, self.setup_dict,
-                            lr_start, lr_time, lr_end )
+        # Get the trainer with the base configuration  - #OBS: no need to register the Env anymore, as it is passed on the trainer config!
+        trainer_config = get_trainer_config(Env, self.custom_env_config, self.setup_dict,lr_start, lr_time, lr_end)
 
         #_____________________________________________________________________________________________
         # Setup Trainer with SLURM signal handler
@@ -66,7 +66,7 @@ class RunRay:
                 resume_unfinished=True,
                 resume_errored=False,
                 restart_errored=False,
-                param_space=trainer_config,  # Assuming `trainer_config` matches the original setup
+                param_space=trainer_config,  # `trainer_config` should match the original setup
             )
             os.remove(state_file_path) # Clear the state file after handling
 

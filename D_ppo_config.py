@@ -1,12 +1,11 @@
-''' Train Single Agent PPO on Ray 2.12
-
-    Uses a custom Model with action masking
+''' PPO Config for a custom Model with action masking
+    To use with Ray 2.12
 '''
 
 from ray.rllib.algorithms.ppo import PPOConfig
 from typing import Dict                                               # for callbacks
 from ray.rllib.evaluation import RolloutWorker, Episode               # for callbacks
-from ray.rllib.policy import Policy                                   #for callbacks
+from ray.rllib.policy import Policy                                   # for callbacks
 from ray.rllib.env import BaseEnv                                     # for callbacks
 from ray.rllib.algorithms.callbacks import DefaultCallbacks           # for callbacks
 
@@ -17,9 +16,9 @@ ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
 ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
 
 
-#------------------------------------------------------------------------------------------------
+#################################################################################################
 # Single-agent RL
-#------------------------------------------------------------------------------------------------
+#################################################################################################
 def get_sarl_trainer_config(env_class,
                             custom_env_config,
                             setup_dict,
@@ -63,16 +62,14 @@ def get_sarl_trainer_config(env_class,
     return trainer_config
 
 
-#------------------------------------------------------------------------------------------------
-# Hierarchical RL
-#------------------------------------------------------------------------------------------------
+#################################################################################################
+# Hierarchical RL - Two custom policies with action masking.
+#################################################################################################
+
 #_____________________________________________________________________________
 # Custom callbacks
-# Get reward per agent (not provided in RLLIB)
-# WandB Callbacks - Just logs results and metrics on each iteration
-
 class On_step_callback(DefaultCallbacks):
-    '''To get rewards per agent
+    '''To get rewards per agent (not provided in RLLIB)
        Needs to be run with default 'verbose = 3' value to be displayed on screen
        #https://github.com/ray-project/ray/blob/master/rllib/evaluation/metrics.py#L229-L231
     '''
@@ -150,7 +147,7 @@ def get_marl_hrl_trainer_config(env_class,
                     "custom_model": "custom_model_high"
                    # "custom_action_dist": CustomActionDistributionHigh,
                 }}),
-            "low_level_policy": (None, low_obs_space, low_action_space,{"model": {
+              "low_level_policy": (None, low_obs_space, low_action_space,{"model": {
                     "custom_model": "custom_model_low",
                    # "custom_action_dist": CustomActionDistributionLow,
                }}),

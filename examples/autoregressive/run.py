@@ -9,11 +9,11 @@ from ray.tune.logger import pretty_print
 
 ''''
 EN LO QUE ESTABA:
-Esto mas o menos funciona. Da un error de matmult pero no importa.
+Esto mas o menos funciona.
 Lo importante es que hay un modelo con un FWD que puede recibir masks
 y un custom action que corre bien con este custom model
 
-EN EL CASO DE QUE NO FUNCIONEN: lo que esta en el SCRATCH anda bien. Pero lo hace a dos pasos
+lo que esta en el SCRATCH anda bien. Pero lo hace a dos pasos
 Y lo que esta en "prior" tambien anda pero tiene dos clases que complica.
 
 Mirar bien el custom action distrib y compararlo con el "prior" que es lo que viene de RLLIB
@@ -67,7 +67,10 @@ from autoreg_action_dist import TorchAutoregressiveCategoricalDistribution as To
 
 # Network model for autoregressive actions.
 #from ray.rllib.examples._old_api_stack.models.autoregressive_action_model import TorchAutoregressiveActionModel
-from autoreg_model  import TorchAutoregressiveActionModel
+#from autoreg_model  import TorchAutoregressiveActionModel
+
+from lucia.reinforced_puzzles.examples.autoregressive.autoreg_model  import  CombinedAutoregressiveActionModel as TorchAutoregressiveActionModel
+
 
 
 # Environment for this example.
