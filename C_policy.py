@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, List, Tuple, Any
-from gymnasium.spaces import Discrete, Tuple, Space
+from gymnasium.spaces import Tuple as GymTuple
+from gymnasium.spaces import Discrete,  Space
 from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.models import ModelCatalog
 from ray.rllib.models.torch.fcnet import SlimFC
@@ -241,7 +242,7 @@ class HighARModel(TorchModelV2, nn.Module):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
         nn.Module.__init__(self)
 
-        if not (isinstance(action_space, Tuple) and all(isinstance(space, Discrete) for space in action_space)):
+        if not (isinstance(action_space, GymTuple) and all(isinstance(space, Discrete) for space in action_space)):
             raise ValueError("This model only supports a tuple of discrete action spaces")
 
         self.num_actions = action_space[0].n
@@ -290,7 +291,7 @@ class HighARModel(TorchModelV2, nn.Module):
         self._context = None
         self.masks = None
 
-    def forward(self, input_dict:Dict[str, torch.Tensor], state: List[torch.Tenso], seq_lens: torch.Tensor)-> Tuple[torch.Tensor, List[torch.Tensor]]:
+    def forward(self, input_dict:Dict[str, torch.Tensor], state: List[torch.Tensor], seq_lens: torch.Tensor)-> Tuple[torch.Tensor, List[torch.Tensor]]:
         """
         Forward pass to encode observations into context vector and prepare masks.
         Does not compute action logits.
@@ -429,7 +430,7 @@ class LowARModel(TorchModelV2, nn.Module):
         self._context = None
         self.masks = None
 
-    def forward(self, input_dict:Dict[str, torch.Tensor], state: List[torch.Tenso], seq_lens: torch.Tensor)-> Tuple[torch.Tensor, List[torch.Tensor]]:
+    def forward(self, input_dict:Dict[str, torch.Tensor], state: List[torch.Tensor], seq_lens: torch.Tensor)-> Tuple[torch.Tensor, List[torch.Tensor]]:
         """
         Forward pass to encode observations into context vector and prepare masks.
         Does not compute action logits.
@@ -501,14 +502,3 @@ class LowARModel(TorchModelV2, nn.Module):
             Tensor: Value function output.
         """
         return torch.reshape(self.value_branch(self._context), [-1])
-
-
-
-
-####################################################################################################################################################
-# # Register the models with RLlib - this makes them globally accessible - used by D_ppo_config.py
-####################################################################################################################################################
-
-ModelCatalog.register_custom_model("masked_action_model", CustomMaskedModel) # For single agent
-ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)     # For HRL
-ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)       # For HRL

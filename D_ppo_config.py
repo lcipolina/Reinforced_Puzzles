@@ -9,12 +9,13 @@ from ray.rllib.policy import Policy                                   # for call
 from ray.rllib.env import BaseEnv                                     # for callbacks
 from ray.rllib.algorithms.callbacks import DefaultCallbacks           # for callbacks
 
-# Register the custom models
+# Register custom models and action distributions
 from ray.rllib.models import ModelCatalog
-from C_policy import CustomModelHigh, CustomModelLow
-ModelCatalog.register_custom_model("custom_model_high", CustomModelHigh)
-ModelCatalog.register_custom_model("custom_model_low", CustomModelLow)
-
+from C_policy import HighARModel,LowARModel
+from autoreg_action_dist import TorchAutoregressiveCategoricalDistribution
+ModelCatalog.register_custom_model("custom_model_high", HighARModel)  #Autorregressive HRL model
+ModelCatalog.register_custom_model("custom_model_low",LowARModel) #Autorregressive HRL model
+ModelCatalog.register_custom_action_dist("autoreg_dist", TorchAutoregressiveCategoricalDistribution)
 
 #################################################################################################
 # Single-agent RL
@@ -57,7 +58,6 @@ def get_sarl_trainer_config(env_class,
                         )
 
                         )      #   .rl_module(_enable_rl_module_api=False) #to keep using the old Mod
-
 
     return trainer_config
 
@@ -157,3 +157,10 @@ def get_marl_hrl_trainer_config(env_class,
             .callbacks(On_step_callback)
         ) # end of trainer_config
     return trainer_config
+
+
+#################################################################################################
+# Autorregressive Hierarchical RL - Two custom policies with custom action and action masking.
+#################################################################################################
+
+# ESTABA POR ACA!

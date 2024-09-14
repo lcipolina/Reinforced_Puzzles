@@ -25,6 +25,8 @@ output_dir = os.path.expanduser("~/ray_results")                            # De
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
 
+
+
 #*********************************** RUN RAY TRAINER *****************************************************
 class RunRay:
 
