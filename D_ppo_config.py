@@ -15,6 +15,7 @@ from C_policy import HighARModel,LowARModel
 from autoreg_action_dist import TorchAutoregressiveCategoricalDistribution
 ModelCatalog.register_custom_model("custom_model_high", HighARModel)  #Autorregressive HRL model
 ModelCatalog.register_custom_model("custom_model_low",LowARModel) #Autorregressive HRL model
+#TODO: this needs to be customized for each agent! and action mask!
 ModelCatalog.register_custom_action_dist("autoreg_dist", TorchAutoregressiveCategoricalDistribution)
 
 #################################################################################################
@@ -90,7 +91,6 @@ class On_step_callback(DefaultCallbacks):
 #_____________________________________________________________________________
 # POLICY MAPPING EXTRAS- For Multi-Policy Training
 # 1) Define the policies definition dict: done in the trainer_config
-
 # 2) Maps agents-> to the defined policies
 # The mapping here is M (agents) -> N (policies), where M >= N.
 def policy_mapping_fn(agent_id, episode, worker, **kwargs):
@@ -164,3 +164,100 @@ def get_marl_hrl_trainer_config(env_class,
 #################################################################################################
 
 # ESTABA POR ACA!
+
+
+#_____________________________________________________________________________
+# Custom callbacks
+class On_step_callback(DefaultCallbacks):
+    '''To get rewards per agent (not provided in RLLIB)
+       Needs to be run with default 'verbose = 3' value to be displayed on screen
+       #https://github.com/ray-project/ray/blob/master/rllib/evaluation/metrics.py#L229-L231
+    '''
+
+# TODO: I am not sure if this is what we need. Look at my script here:
+# /Users/lucia/Desktop/LuciaArchive/000_A_MY_RESEARCH/00-My_Papers/Ridesharing/000-A-RidesharingMARL/00-Codes/coalitions/A-coalitions_paper/C_ppo_config.py
+
+    def on_episode_step(self, worker: RolloutWorker, base_env: BaseEnv,
+                  policies: Dict[str, Policy], episode: Episode,**kwargs):
+        '''Calculates the reward per agent at the STEP of the episode. Displays on Tensorboard and on the console   '''
+        #The advantage of these ones is that it calculates the Max-Mean-Min and it prints on TB
+        #NOTE: custom_metrics only take scalars
+        my_dict = {}  #Needs this as metric name needs to be a string
+        for key, values in episode.agent_rewards.items():
+            my_dict[str(key)] = values
+            #my_dict[str(key)+'_std_dev'] = np.std(values) #this one comes empty
+            episode.custom_metrics.update(my_dict)
+#_____________________________________________________________________________
+# POLICY MAPPING EXTRAS- For Multi-Policy Training
+# 1) Define the policies definition dict: done in the trainer_config
+# 2) Maps agents-> to the defined policies
+# The mapping here is M (agents) -> N (policies), where M >= N.
+def policy_mapping_fn(agent_id, episode, worker, **kwargs):
+    '''Maps agents to the defined policies. Ex: agent_id = "low_level_1" -> "low_level_policy"'''
+    if agent_id.startswith("low_level_"):
+        return "low_level_policy"
+    else:
+        return "high_level_policy"
+#_____________________________________________________________________________
+def get_env_spaces(env_class, custom_env_config):
+    # Pass the space corresponding to each Policy.
+    env =  env_class(custom_env_config)
+    high_obs_space = env.observation_space["high_level_policy"]
+    high_action_space = env.action_space["high_level_policy"]
+    low_obs_space = env.observation_space["low_level_policy"]
+    low_action_space = env.action_space["low_level_policy"]
+    env.close()  # Ensure you clean up the environment instance
+    return high_obs_space, high_action_space, low_obs_space, low_action_space
+
+def get_ar_trainer_config(env_class,
+                            custom_env_config,
+                            setup_dict,
+                            lr_start = None,
+                            lr_time = None,
+                            lr_end = None
+                           ):
+
+    high_obs_space, high_action_space, low_obs_space, low_action_space = get_env_spaces(env_class, custom_env_config)
+
+    _train_batch_size  = setup_dict['train_batch_size']
+    num_cpus           = setup_dict['cpu_nodes']
+    _seed              = setup_dict.get('seed', 42)
+
+    trainer_config = (
+            PPOConfig()
+            .environment(env=env_class,                    # if we pass it like this, we don't need to register the env
+                         env_config= custom_env_config)
+            .training(train_batch_size=_train_batch_size,  # Number of samples that are collected before a gradient step is taken.
+                      sgd_minibatch_size=64,               # These are the number of samples that are used for each SGD iteration.
+                       # entropy_coeff=0.2,                # it doesnt seem to change much
+                       # kl_coeff=0.01,
+                      model = {"_disable_preprocessor_api": False})  # if True, dicts are converted to Tensors - and we can't distinguish between different observations and masks
+            .rollouts(num_rollout_workers=num_cpus, num_envs_per_env_runner=1, rollout_fragment_length='auto')
+            .framework("torch")
+            .debugging(seed=_seed)
+                        # We need to disable preprocessing of observations, because preprocessing
+                        # would flatten the observation dict of the environment - and we need it for the action mask
+            .experimental(
+                  _disable_preprocessor_api= False, # Do no flatten the observation dict of the environment
+                        )
+            .multi_agent(  #https://github.com/ray-project/ray/blob/master/rllib/examples/multi_agent/two_algorithms.py
+                policies= {
+               "high_level_policy": (None,high_obs_space, high_action_space,
+                                     {
+                                        "model": {
+                                        "custom_model": "custom_model_high",
+                                        "custom_action_dist": "autoreg_dist",
+                                        },
+                                     }
+                                    ),
+              "low_level_policy": (None, low_obs_space, low_action_space,
+                                   {"model": {
+                                    "custom_model": "custom_model_low",
+                                    "custom_action_dist": "autoreg_dist",
+               }}),
+              },
+                policy_mapping_fn=policy_mapping_fn,
+            ) # end of multi_agent
+            .callbacks(On_step_callback)
+        ) # end of trainer_config
+    return trainer_config

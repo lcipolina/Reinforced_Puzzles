@@ -19,7 +19,7 @@ parent_dir          = os.path.dirname(current_script_dir)                   # Ge
 sys.path.insert(0, parent_dir)                                              # Add parent directory to sys.path
 
 from B_env_hrl import PuzzleGymEnv as Env                                   # Custom environment
-from D_ppo_config import get_marl_hrl_trainer_config as get_trainer_config  # Trainer config for single agent PPO
+from D_ppo_config import get_ar_trainer_config as get_trainer_config  # Trainer config for PPO
 
 output_dir = os.path.expanduser("~/ray_results")                            # Default output directory
 TIMESTAMP  = datetime.datetime.now().strftime("%Y%m%d-%H%M")
